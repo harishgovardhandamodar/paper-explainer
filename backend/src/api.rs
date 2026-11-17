@@ -1,0 +1,198 @@
+//! HTTP handlers.
+
+use crate::error::{AppError, AppResult};
+use crate::graph::graph_to_mermaid;
+use crate::ingest::{ingest_paper, refresh_paper};
+use crate::models::*;
+use crate::store::StoreHandle;
+use axum::extract::{Path, Query, State};
+use axum::http::{header, StatusCode};
+use axum::response::{IntoResponse, Response};
+use axum::Json;
+use serde::Deserialize;
+use serde_json::json;
+
+#[derive(Clone)]
+pub struct ApiState {
+    pub store: StoreHandle,
+}
+
+pub type ApiResult<T> = AppResult<T>;
+
+pub async fn health(State(state): State<ApiState>) -> ApiResult<Json<HealthResponse>> {
+    let store = state.store.read()?;
+    Ok(Json(HealthResponse {
+        status: "ok", name: "paper-explainer", version: env!("CARGO_PKG_VERSION"),
+        papers: store.papers.len(), graph_nodes: store.graph.nodes.len(), graph_edges: store.graph.edges.len(),
+    }))
+}
+
+pub async fn list_papers(State(state): State<ApiState>) -> ApiResult<Json<Vec<PaperSummary>>> {
+    Ok(Json(state.store.list_papers()?))
+}
+
+pub async fn get_paper(
+    State(state): State<ApiState>, Path(id): Path<String>,
+) -> ApiResult<Json<Paper>> {
+    Ok(Json(state.store.get_paper(&id)?))
+}
+
+pub async fn add_paper(
+    State(state): State<ApiState>, Json(req): Json<IngestRequest>,
+) -> ApiResult<(StatusCode, Json<Paper>)> {
+    let paper = ingest_paper(req, &state.store).await?;
+    Ok((StatusCode::CREATED, Json(paper)))
+}
+
+pub async fn delete_paper(
+    State(state): State<ApiState>, Path(id): Path<String>,
+) -> ApiResult<StatusCode> {
+    state.store.delete_paper(&id)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn refresh(
+    State(state): State<ApiState>, Path(id): Path<String>,
+) -> ApiResult<Json<Paper>> {
+    Ok(Json(refresh_paper(&id, &state.store).await?))
+}
+
+pub async fn get_graph(State(state): State<ApiState>) -> ApiResult<Json<KnowledgeGraph>> {
+    Ok(Json(state.store.graph()?))
+}
+
+pub async fn get_graph_mermaid(State(state): State<ApiState>) -> ApiResult<String> {
+    Ok(graph_to_mermaid(&state.store.graph()?))
+}
+
+pub async fn add_edge(
+    State(state): State<ApiState>, Json(mut edge): Json<GraphEdge>,
+) -> ApiResult<(StatusCode, Json<GraphEdge>)> {
+    if edge.id.is_empty() {
+        edge.id = format!("custom|{}|{}|{}", edge.source, edge.target, serde_json::to_string(&edge.kind)?);
+    }
+    let edge = state.store.add_edge(edge)?;
+    Ok((StatusCode::CREATED, Json(edge)))
+}
+
+pub async fn stats(State(state): State<ApiState>) -> ApiResult<Json<StatsResponse>> {
+    let store = state.store.read()?;
+    Ok(Json(StatsResponse {
+        papers: store.papers.len(),
+        hypotheses: store.papers.iter().map(|p| p.hypotheses.len()).sum(),
+        experiments: store.papers.iter().map(|p| p.experiments.len()).sum(),
+        findings: store.papers.iter().map(|p| p.findings.len()).sum(),
+        diagrams: store.papers.iter().map(|p| p.diagrams.len()).sum(),
+        workflows: store.papers.iter().map(|p| p.workflows.len()).sum(),
+        concepts: store.papers.iter().map(|p| p.concepts.len()).sum(),
+        graph_nodes: store.graph.nodes.len(),
+        graph_edges: store.graph.edges.len(),
+        by_status: json!({
+            "ready": store.papers.iter().filter(|p| p.status == PaperStatus::Ready).count(),
+            "processing": store.papers.iter().filter(|p| p.status == PaperStatus::Processing).count(),
+            "failed": store.papers.iter().filter(|p| p.status == PaperStatus::Failed).count(),
+        }),
+    }))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SearchQuery {
+    pub q: String,
+    #[serde(default = "default_limit")]
+    pub limit: usize,
+}
+fn default_limit() -> usize { 20 }
+
+pub async fn search(
+    State(state): State<ApiState>, Query(params): Query<SearchQuery>,
+) -> ApiResult<Json<Vec<SearchResult>>> {
+    let needle = params.q.trim().to_lowercase();
+    if needle.is_empty() { return Ok(Json(Vec::new())); }
+    let store = state.store.read()?;
+    let mut out = Vec::new();
+    for p in &store.papers {
+        let mut push = |kind: &str, id: String, title: String, body: String| {
+            if body.to_lowercase().contains(&needle) || title.to_lowercase().contains(&needle) {
+                out.push(SearchResult {
+                    paper_id: p.id.clone(), paper_title: p.title.clone(), kind: kind.into(),
+                    id, title, snippet: truncate_snippet(&body, &needle, 180),
+                });
+            }
+        };
+        push("paper", p.id.clone(), p.title.clone(), format!("{} {}", p.summary, p.abstract_text));
+        for h in &p.hypotheses { push("hypothesis", h.id.clone(), h.statement.clone(), h.simplified.clone()); }
+        for e in &p.experiments { push("experiment", e.id.clone(), e.name.clone(), format!("{} {}", e.question, e.design)); }
+        for f in &p.findings { push("finding", f.id.clone(), f.claim.clone(), format!("{} {}", f.simplified, f.evidence)); }
+        for c in &p.concepts { push("concept", c.id.clone(), c.name.clone(), c.definition.clone()); }
+    }
+    out.truncate(params.limit.min(100));
+    Ok(Json(out))
+}
+
+fn truncate_snippet(body: &str, needle: &str, max: usize) -> String {
+    let lower = body.to_lowercase();
+    let pos = lower.find(needle).unwrap_or(0);
+    let start = pos.saturating_sub(50);
+    let end = (start + max).min(body.len());
+    let mut s = body.get(start..end).unwrap_or(body).trim().to_string();
+    if start > 0 { s = format!("…{s}"); }
+    if end < body.len() { s.push('…'); }
+    s
+}
+
+pub async fn export_markdown(
+    State(state): State<ApiState>, Path(id): Path<String>,
+) -> ApiResult<Response> {
+    let p = state.store.get_paper(&id)?;
+    let mut md = format!("# {}\n\n", p.title);
+    md.push_str(&format!("**Authors:** {}  \n", p.authors.join(", ")));
+    md.push_str(&format!("**Source:** [{}]({})  \n", p.venue.as_deref().unwrap_or("paper"), p.url));
+    md.push_str("\n## Plain-language summary\n\n");
+    md.push_str(&p.summary.replace("\n\n", "\n\n"));
+    md.push_str("\n\n## Hypotheses\n\n");
+    for h in &p.hypotheses {
+        md.push_str(&format!("### {} — {:?}\n\n{}\n\n> {}\n\n", h.id, h.status, h.statement, h.simplified));
+    }
+    md.push_str("## Experiments\n\n");
+    for e in &p.experiments {
+        md.push_str(&format!("### {}\n\n**Question:** {}\n\n{}\n\n", e.name, e.question, e.design));
+        for r in &e.results { md.push_str(&format!("- {}\n", r)); }
+        md.push('\n');
+    }
+    md.push_str("## Key findings\n\n");
+    for f in &p.findings {
+        md.push_str(&format!("### {}\n\n{}\n\n> {}\n\n**Evidence:** {}\n\n", f.id, f.claim, f.simplified, f.evidence));
+        if let Some(c) = &f.caveat { md.push_str(&format!("*Caveat:* {}\n\n", c)); }
+    }
+    md.push_str("## Diagrams (Mermaid)\n\n");
+    for d in &p.diagrams {
+        md.push_str(&format!("### {}\n\n{}\n\n```mermaid\n{}\n```\n\n", d.title, d.caption, d.mermaid));
+    }
+    md.push_str("## Workflows\n\n");
+    for w in &p.workflows {
+        md.push_str(&format!("### {}\n\n{}\n\n", w.title, w.description));
+        for (i, s) in w.steps.iter().enumerate() {
+            md.push_str(&format!("{}. **{}** — {}\n", i + 1, s.title, s.detail));
+        }
+        md.push('\n');
+    }
+    let headers = [
+        (header::CONTENT_TYPE, "text/markdown; charset=utf-8"),
+        (header::CONTENT_DISPOSITION, "attachment"),
+    ];
+    let mut resp = md.into_response();
+    for (k, v) in headers { resp.headers_mut().insert(k, v.parse().unwrap()); }
+    Ok(resp)
+}
+
+pub async fn reset(State(state): State<ApiState>) -> ApiResult<StatusCode> {
+    state.store.reset()?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn not_found() -> Response {
+    (StatusCode::NOT_FOUND, Json(json!({ "error": { "code": "not_found", "message": "route not found" } }))).into_response()
+}
+
+#[allow(dead_code)]
+fn _unused(_: &AppError) {}

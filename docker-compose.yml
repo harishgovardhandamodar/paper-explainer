@@ -1,0 +1,60 @@
+# Paper Explainer — private dashboard on your Tailscale tailnet.
+#
+# Quick start:
+#   1. cp .env.example .env   (paste a Tailscale auth key into it)
+#   2. docker compose up -d --build
+#   3. Open http://paper-explainer.<your-tailnet>.ts.net:8787
+#
+# The dashboard is never published on the host or the public internet. It is
+# reachable only through the Tailscale interface that the app container shares
+# with the tailscale container.
+
+services:
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: paper-explainer-tailscale
+    hostname: paper-explainer
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+    environment:
+      # Required: create an auth key at https://login.tailscale.com/admin/settings/keys
+      TS_AUTHKEY: "${TS_AUTHKEY:?Set TS_AUTHKEY in .env — see .env.example}"
+      TS_HOSTNAME: ${TS_HOSTNAME:-paper-explainer}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "false"
+      # Keep public DNS inside the container so arXiv fetches keep working.
+      # Override in .env if you need tags, e.g. --advertise-tags=tag:server
+      TS_EXTRA_ARGS: "${TS_EXTRA_ARGS:---accept-dns=false}"
+    healthcheck:
+      test: ["CMD", "tailscale", "status", "--peers=false"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: paper-explainer:latest
+    container_name: paper-explainer
+    restart: unless-stopped
+    # Share the Tailscale network namespace. The app listens on 0.0.0.0:8787
+    # inside this namespace, which is exactly the tailnet IP/MagicDNS address.
+    network_mode: "service:tailscale"
+    depends_on:
+      - tailscale
+    volumes:
+      - paper-data:/app/data
+    environment:
+      RUST_LOG: ${RUST_LOG:-paper_explainer=info,tower_http=warn}
+
+volumes:
+  tailscale-state:
+  paper-data:

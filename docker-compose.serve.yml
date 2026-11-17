@@ -1,0 +1,16 @@
+# Optional: expose the dashboard as HTTPS on https://paper-explainer.<tailnet>.ts.net
+# via Tailscale Serve (no port number, automatic certificate).
+#
+# Requires HTTPS / MagicDNS to be enabled on your tailnet.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.serve.yml up -d --build
+#
+# Then open:  https://paper-explainer.<your-tailnet>.ts.net
+
+services:
+  tailscale:
+    environment:
+      TS_SERVE_CONFIG: /config/serve.json
+    volumes:
+      - ./tailscale/serve.json:/config/serve.json:ro

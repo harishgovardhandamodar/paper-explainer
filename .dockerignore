@@ -1,0 +1,13 @@
+target/
+frontend/node_modules/
+frontend/dist/
+frontend/tsconfig.tsbuildinfo
+data/
+graft/
+.git/
+.gitignore
+.ignore
+.env
+.env.*
+!/.env.example
+**/*.log

@@ -1,0 +1,23 @@
+# Rust
+/target/
+
+# Node / frontend
+/frontend/node_modules/
+/frontend/dist/
+/frontend/tsconfig.tsbuildinfo
+
+# Runtime data (auto-seeded on first run; do not commit ingested papers)
+/data/
+*.store.json
+
+# Secrets & local env — never commit Tailscale auth keys
+.env
+.env.*
+!.env.example
+
+# Editors / OS
+.DS_Store
+*.swp
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+graft/

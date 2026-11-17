@@ -1,0 +1,35 @@
+# Use this when the Docker host is ALREADY connected to Tailscale.
+#
+# No auth key, no sidecar: the app runs on the host network and binds ONLY to
+# the host's tailnet IP, so it is reachable from tailnet devices and not from
+# the public network.
+#
+#   docker compose -f docker-compose.tailnet-host.yml up -d
+#
+# Override the IP if your tailnet address changes:
+#   TAILNET_IP=100.x.y.z docker compose -f docker-compose.tailnet-host.yml up -d
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: paper-explainer:latest
+    container_name: paper-explainer
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      PAPER_EXPLAINER_HOST: ${TAILNET_IP:-100.69.169.113}
+      PAPER_EXPLAINER_PORT: 8787
+      RUST_LOG: ${RUST_LOG:-paper_explainer=info,tower_http=warn}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://${TAILNET_IP:-100.69.169.113}:8787/api/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - paper-data:/app/data
+
+volumes:
+  paper-data:
