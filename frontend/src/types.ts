@@ -115,6 +115,30 @@ export interface PaperSection {
   paragraphs: string[];
 }
 
+export interface PaperEnhancement {
+  tldr: string;
+  explanation: string;
+  how_it_works: string;
+  key_insights: string[];
+  caveats: string[];
+  requested_model: string;
+  served_model: string;
+  gateway: string;
+  prompt_tokens: number | null;
+  completion_tokens: number | null;
+  generated_at: string;
+}
+
+export interface LlmStatus {
+  enabled: boolean;
+  reachable: boolean;
+  base_url: string;
+  model: string;
+  model_available: boolean;
+  models: string[];
+  message: string;
+}
+
 export interface Paper extends PaperSummary {
   authors: string[];
   venue: string | null;
@@ -129,6 +153,7 @@ export interface Paper extends PaperSummary {
   concepts: Concept[];
   sections: PaperSection[];
   notes: string[];
+  enhancement: PaperEnhancement | null;
 }
 
 export interface GraphNode {

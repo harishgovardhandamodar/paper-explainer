@@ -59,6 +59,47 @@ pub struct Paper {
     pub sections: Vec<PaperSection>,
     /// Non-fatal notes produced by the extractor (e.g. "LLM unavailable").
     pub notes: Vec<String>,
+    /// Optional AI-written explanation, generated on demand via Ollama.
+    /// Stored alongside the deterministic extraction so it survives reloads.
+    pub enhancement: Option<PaperEnhancement>,
+}
+
+/// AI-generated explanation layer for a paper. Produced by the configured
+/// Ollama model through the fox-services gateway; never replaces the
+/// deterministic extraction above.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct PaperEnhancement {
+    /// One-sentence "what is this paper about" answer.
+    pub tldr: String,
+    /// Multi-paragraph plain-language explanation of the whole paper.
+    pub explanation: String,
+    /// Step-by-step explanation of how the work actually works.
+    pub how_it_works: String,
+    /// The 3–6 things a reader should take away.
+    pub key_insights: Vec<String>,
+    /// Limitations or caveats the model flagged.
+    pub caveats: Vec<String>,
+    /// Model the caller asked for (e.g. qwen3.8:27b).
+    pub requested_model: String,
+    /// Model that actually answered (the gateway may reroute).
+    pub served_model: String,
+    /// Ollama base URL used for the call (fox-services gateway).
+    pub gateway: String,
+    pub prompt_tokens: Option<u64>,
+    pub completion_tokens: Option<u64>,
+    pub generated_at: DateTime<Utc>,
+}
+
+impl Default for PaperEnhancement {
+    fn default() -> Self {
+        Self {
+            tldr: String::new(), explanation: String::new(), how_it_works: String::new(),
+            key_insights: Vec::new(), caveats: Vec::new(), requested_model: String::new(),
+            served_model: String::new(), gateway: String::new(),
+            prompt_tokens: None, completion_tokens: None, generated_at: Utc::now(),
+        }
+    }
 }
 
 impl Default for Paper {
@@ -71,6 +112,7 @@ impl Default for Paper {
             added_at: now, updated_at: now, hypotheses: Vec::new(), experiments: Vec::new(),
             findings: Vec::new(), diagrams: Vec::new(), workflows: Vec::new(),
             concepts: Vec::new(), sections: Vec::new(), notes: Vec::new(),
+            enhancement: None,
         }
     }
 }
@@ -466,6 +508,18 @@ pub struct IngestRequest {
 
 impl Default for IngestRequest {
     fn default() -> Self { Self { url: None, text: None, title: None, overwrite: false } }
+}
+
+/// Readiness of the configured Ollama gateway (fox-services).
+#[derive(Debug, Clone, Serialize)]
+pub struct LlmStatus {
+    pub enabled: bool,
+    pub reachable: bool,
+    pub base_url: String,
+    pub model: String,
+    pub model_available: bool,
+    pub models: Vec<String>,
+    pub message: String,
 }
 
 #[derive(Debug, Clone, Serialize)]

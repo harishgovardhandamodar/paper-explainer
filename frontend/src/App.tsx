@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from './api';
 import { AddPaperDialog } from './components/AddPaperDialog';
+import { AiView } from './components/AiView';
+import { DesignView } from './components/DesignView';
 import { relativeDate } from './components/ui';
-import type { GraphEdge, KnowledgeGraph, Paper, PaperSummary, SearchResult, Stats } from './types';
+import type { GraphEdge, KnowledgeGraph, LlmStatus, Paper, PaperSummary, SearchResult, Stats } from './types';
 import {
   DiagramsView, ExperimentsView, FindingsView, GraphView, HypothesesView,
   LibraryView, OverviewView, WorkflowsView, type ViewKey,
@@ -15,6 +17,7 @@ const NAV: { key: ViewKey; label: string; icon: string }[] = [
   { key: 'diagrams', label: 'Diagrams', icon: '◇' },
   { key: 'workflows', label: 'Workflows', icon: '⇢' },
   { key: 'findings', label: 'Findings', icon: '✦' },
+  { key: 'ai', label: 'AI insights', icon: '✺' },
   { key: 'graph', label: 'Knowledge graph', icon: '⁂' },
 ];
 
@@ -23,6 +26,8 @@ export default function App() {
   const [paper, setPaper] = useState<Paper | null>(null);
   const [graph, setGraph] = useState<KnowledgeGraph>({ nodes: [], edges: [] });
   const [stats, setStats] = useState<Stats | null>(null);
+  const [llmStatus, setLlmStatus] = useState<LlmStatus | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
   const [view, setView] = useState<ViewKey>('overview');
   const [dialog, setDialog] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -62,6 +67,7 @@ export default function App() {
         setLoading(false);
       }
     })();
+    void api.llmStatus().then(setLlmStatus).catch(() => setLlmStatus(null));
   }, [loadMeta, openPaper, notify]);
 
   useEffect(() => {
@@ -108,6 +114,33 @@ export default function App() {
       await loadMeta();
       notify('Paper re-imported from source');
     } catch (e) { notify(e instanceof Error ? e.message : String(e), true); }
+  };
+
+  const handleEnhance = async () => {
+    if (!paper || aiBusy) return;
+    setAiBusy(true);
+    try {
+      const updated = await api.enhancePaper(paper.id);
+      setPaper(updated);
+      notify(`AI explanation written by ${updated.enhancement?.served_model ?? 'the model'}`);
+    } catch (e) {
+      notify(e instanceof Error ? e.message : String(e), true);
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
+  const handleClearEnhancement = async () => {
+    if (!paper || aiBusy) return;
+    setAiBusy(true);
+    try {
+      setPaper(await api.clearEnhancement(paper.id));
+      notify('AI explanation removed');
+    } catch (e) {
+      notify(e instanceof Error ? e.message : String(e), true);
+    } finally {
+      setAiBusy(false);
+    }
   };
 
   const handleResult = (r: SearchResult) => {
@@ -157,6 +190,10 @@ export default function App() {
           <button className={`nav-item ${view === 'library' ? 'active' : ''}`} onClick={() => setView('library')}>
             <span className="icon">▤</span><span>Library</span><span className="count">{papers.length}</span>
           </button>
+          <div className="nav-label">Learn</div>
+          <button className={`nav-item ${view === 'design' ? 'active' : ''}`} onClick={() => setView('design')}>
+            <span className="icon">?</span><span>Help &amp; Design</span>
+          </button>
         </nav>
         <div className="sidebar-papers">
           <div className="nav-label">Recent</div>
@@ -176,7 +213,7 @@ export default function App() {
 
       <main className="main">
         <header className="topbar">
-          <div className="crumb">Collection <span className="faint">/</span> <strong>{paper ? (paper.title.length > 46 ? `${paper.title.slice(0, 46)}…` : paper.title) : 'Library'}</strong></div>
+          <div className="crumb">Collection <span className="faint">/</span> <strong>{view === 'design' ? 'Help & Design' : view === 'ai' ? 'AI insights' : view === 'library' ? 'Library' : paper ? (paper.title.length > 46 ? `${paper.title.slice(0, 46)}…` : paper.title) : 'Library'}</strong></div>
           <div className="search-wrap">
             <span className="search-icon">⌕</span>
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search hypotheses, findings, concepts…" />
@@ -194,18 +231,24 @@ export default function App() {
               </div>
             )}
           </div>
-          {paper && view !== 'library' && <>
+          {paper && view !== 'library' && view !== 'design' && view !== 'ai' && <>
             <a className="btn sm" href={api.exportUrl(paper.id)} target="_blank" rel="noreferrer">Export MD</a>
             <button className="btn sm" onClick={handleRefresh} title="Re-import from source">↻</button>
           </>}
         </header>
 
         <div className="content">
+          {view === 'design' && <DesignView />}
+          {view === 'ai' && paper && (
+            <AiView paper={paper} status={llmStatus} busy={aiBusy}
+              onEnhance={() => void handleEnhance()} onClear={() => void handleClearEnhancement()} />
+          )}
+          {view === 'ai' && !paper && <div className="empty"><div className="empty-icon">◌</div><strong>No paper selected</strong></div>}
           {view === 'library' && stats && (
             <LibraryView papers={papers} stats={stats} onOpen={(id) => void openPaper(id)}
               onDelete={(id) => void handleDelete(id)} onAdd={() => setDialog(true)} />
           )}
-          {view !== 'library' && paper && stats && (
+          {view !== 'library' && view !== 'design' && view !== 'ai' && paper && stats && (
             <>
               {view === 'overview' && <OverviewView paper={paper} stats={stats} onNavigate={setView} />}
               {view === 'hypotheses' && <HypothesesView paper={paper} />}
@@ -216,7 +259,7 @@ export default function App() {
               {view === 'graph' && <GraphView graph={graph} activePaperId={paper.id} onAddEdge={addEdge} />}
             </>
           )}
-          {view !== 'library' && !paper && (
+          {view !== 'library' && view !== 'design' && view !== 'ai' && !paper && (
             <div className="empty"><div className="empty-icon">◌</div><strong>No paper selected</strong>
               <div style={{ marginTop: 10 }}><button className="btn primary" onClick={() => setDialog(true)}>Add your first paper</button></div>
             </div>

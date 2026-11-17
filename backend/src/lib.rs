@@ -3,6 +3,7 @@ pub mod error;
 pub mod explain;
 pub mod graph;
 pub mod ingest;
+pub mod llm;
 pub mod models;
 pub mod parse;
 pub mod seed;
@@ -21,6 +22,7 @@ pub fn build_router(state: api::ApiState, dist: &Path) -> Router {
         .route("/api/papers", get(api::list_papers).post(api::add_paper))
         .route("/api/papers/{id}", get(api::get_paper).delete(api::delete_paper))
         .route("/api/papers/{id}/refresh", post(api::refresh))
+        .route("/api/papers/{id}/enhance", post(api::enhance_paper).delete(api::clear_enhancement))
         .route("/api/papers/{id}/export", get(api::export_markdown))
         .route("/api/graph", get(api::get_graph))
         .route("/api/graph/mermaid", get(api::get_graph_mermaid))
@@ -28,6 +30,7 @@ pub fn build_router(state: api::ApiState, dist: &Path) -> Router {
         .route("/api/stats", get(api::stats))
         .route("/api/search", get(api::search))
         .route("/api/reset", post(api::reset))
+        .route("/api/llm/status", get(api::llm_status))
         .with_state(state);
 
     let index = dist.join("index.html");

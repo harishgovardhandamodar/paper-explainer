@@ -1,5 +1,6 @@
 use paper_explainer::api::ApiState;
 use paper_explainer::build_router;
+use paper_explainer::llm::LlmClient;
 use paper_explainer::store::StoreHandle;
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -14,6 +15,7 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let store = StoreHandle::open()?;
+    let llm = LlmClient::from_env()?;
     let host = std::env::var("PAPER_EXPLAINER_HOST").unwrap_or_else(|_| "0.0.0.0".into());
     let port: u16 = std::env::var("PAPER_EXPLAINER_PORT")
         .ok().and_then(|v| v.parse().ok()).unwrap_or(8787);
@@ -22,7 +24,7 @@ async fn main() -> anyhow::Result<()> {
     );
 
     let addr: SocketAddr = format!("{host}:{port}").parse()?;
-    let app = build_router(ApiState { store }, &dist);
+    let app = build_router(ApiState { store, llm }, &dist);
 
     tracing::info!("Paper Explainer listening on http://{addr}");
     let listener = tokio::net::TcpListener::bind(addr).await?;

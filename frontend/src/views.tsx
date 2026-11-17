@@ -4,7 +4,7 @@ import { ForceGraph, NODE_COLORS, NODE_LABELS } from './components/KnowledgeGrap
 import { Badge, Chips, Empty, PageHead, SectionDivider, StatCard, relativeDate } from './components/ui';
 import type { EdgeKind, GraphEdge, GraphNode, KnowledgeGraph, NodeKind, Paper, PaperSummary, Stats } from './types';
 
-export type ViewKey = 'overview' | 'hypotheses' | 'experiments' | 'diagrams' | 'workflows' | 'findings' | 'graph' | 'library';
+export type ViewKey = 'overview' | 'hypotheses' | 'experiments' | 'diagrams' | 'workflows' | 'findings' | 'graph' | 'library' | 'design' | 'ai';
 
 /* -------------------------------- Overview -------------------------------- */
 export function OverviewView({ paper, stats, onNavigate }: {
@@ -47,6 +47,18 @@ export function OverviewView({ paper, stats, onNavigate }: {
         <h3>Explained in plain language</h3>
         <div className="prose">{paper.summary}</div>
       </div>
+
+      {paper.enhancement && (
+        <div className="card ai-preview" style={{ marginBottom: 26 }}>
+          <div className="row" style={{ justifyContent: 'space-between', gap: 12 }}>
+            <div>
+              <div className="eyebrow">✺ AI enhancement · {paper.enhancement.served_model}</div>
+              <div className="ai-preview-tldr">{paper.enhancement.tldr}</div>
+            </div>
+            <button className="btn sm" onClick={() => onNavigate('ai')}>AI insights →</button>
+          </div>
+        </div>
+      )}
 
       <SectionDivider title="Start here" />
       <div className="grid-3" style={{ marginBottom: 8 }}>

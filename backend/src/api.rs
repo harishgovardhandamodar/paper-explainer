@@ -3,7 +3,9 @@
 use crate::error::{AppError, AppResult};
 use crate::graph::graph_to_mermaid;
 use crate::ingest::{ingest_paper, refresh_paper};
+use crate::llm::LlmClient;
 use crate::models::*;
+use chrono::Utc;
 use crate::store::StoreHandle;
 use axum::extract::{Path, Query, State};
 use axum::http::{header, StatusCode};
@@ -15,6 +17,7 @@ use serde_json::json;
 #[derive(Clone)]
 pub struct ApiState {
     pub store: StoreHandle,
+    pub llm: LlmClient,
 }
 
 pub type ApiResult<T> = AppResult<T>;
@@ -55,6 +58,46 @@ pub async fn refresh(
     State(state): State<ApiState>, Path(id): Path<String>,
 ) -> ApiResult<Json<Paper>> {
     Ok(Json(refresh_paper(&id, &state.store).await?))
+}
+
+/// Readiness of the Ollama gateway used for AI enhancements.
+pub async fn llm_status(State(state): State<ApiState>) -> Json<LlmStatus> {
+    Json(state.llm.status().await)
+}
+
+/// Generate (or regenerate) the AI explanation for one paper. The result is
+/// persisted on the paper so it survives reloads and graph rebuilds.
+pub async fn enhance_paper(
+    State(state): State<ApiState>, Path(id): Path<String>,
+) -> ApiResult<Json<Paper>> {
+    let paper = state.store.get_paper(&id)?;
+    let enhancement = state.llm.enhance(&paper).await?;
+    let updated = {
+        let mut store = state.store.write()?;
+        let p = store.find_paper_mut(&id)
+            .ok_or_else(|| AppError::NotFound(format!("paper '{id}'")))?;
+        p.enhancement = Some(enhancement);
+        p.updated_at = Utc::now();
+        p.clone()
+    };
+    state.store.flush()?;
+    Ok(Json(updated))
+}
+
+/// Remove a stored AI explanation, returning to the deterministic view only.
+pub async fn clear_enhancement(
+    State(state): State<ApiState>, Path(id): Path<String>,
+) -> ApiResult<Json<Paper>> {
+    let updated = {
+        let mut store = state.store.write()?;
+        let p = store.find_paper_mut(&id)
+            .ok_or_else(|| AppError::NotFound(format!("paper '{id}'")))?;
+        p.enhancement = None;
+        p.updated_at = Utc::now();
+        p.clone()
+    };
+    state.store.flush()?;
+    Ok(Json(updated))
 }
 
 pub async fn get_graph(State(state): State<ApiState>) -> ApiResult<Json<KnowledgeGraph>> {
@@ -148,7 +191,24 @@ pub async fn export_markdown(
     md.push_str(&format!("**Authors:** {}  \n", p.authors.join(", ")));
     md.push_str(&format!("**Source:** [{}]({})  \n", p.venue.as_deref().unwrap_or("paper"), p.url));
     md.push_str("\n## Plain-language summary\n\n");
-    md.push_str(&p.summary.replace("\n\n", "\n\n"));
+    md.push_str(&p.summary);
+    if let Some(e) = &p.enhancement {
+        md.push_str("\n\n## AI-enhanced explanation\n\n");
+        md.push_str(&format!("> {}\n\n", e.tldr));
+        md.push_str(&e.explanation);
+        md.push_str("\n\n### How it works\n\n");
+        md.push_str(&e.how_it_works);
+        md.push_str("\n\n### Key insights\n\n");
+        for x in &e.key_insights { md.push_str(&format!("- {x}\n")); }
+        if !e.caveats.is_empty() {
+            md.push_str("\n### Caveats\n\n");
+            for x in &e.caveats { md.push_str(&format!("- {x}\n")); }
+        }
+        md.push_str(&format!(
+            "\n\n*AI-generated via {} — requested {}, served {}. Verify against the paper.*\n",
+            e.gateway, e.requested_model, e.served_model
+        ));
+    }
     md.push_str("\n\n## Hypotheses\n\n");
     for h in &p.hypotheses {
         md.push_str(&format!("### {} — {:?}\n\n{}\n\n> {}\n\n", h.id, h.status, h.statement, h.simplified));

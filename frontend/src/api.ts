@@ -1,5 +1,5 @@
 import type {
-  Health, IngestRequest, KnowledgeGraph, Paper, PaperSummary, SearchResult, Stats, GraphEdge,
+  Health, IngestRequest, KnowledgeGraph, LlmStatus, Paper, PaperSummary, SearchResult, Stats, GraphEdge,
 } from './types';
 
 const BASE = '/api';
@@ -32,6 +32,11 @@ export const api = {
     request<void>(`/papers/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   refreshPaper: (id: string) =>
     request<Paper>(`/papers/${encodeURIComponent(id)}/refresh`, { method: 'POST' }),
+  llmStatus: () => request<LlmStatus>('/llm/status'),
+  enhancePaper: (id: string) =>
+    request<Paper>(`/papers/${encodeURIComponent(id)}/enhance`, { method: 'POST' }),
+  clearEnhancement: (id: string) =>
+    request<Paper>(`/papers/${encodeURIComponent(id)}/enhance`, { method: 'DELETE' }),
   graph: () => request<KnowledgeGraph>('/graph'),
   addEdge: (edge: GraphEdge) =>
     request<GraphEdge>('/graph/edges', { method: 'POST', body: JSON.stringify(edge) }),

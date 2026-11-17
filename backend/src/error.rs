@@ -13,6 +13,8 @@ pub enum AppError {
     Fetch(String),
     #[error("parse failed: {0}")]
     Parse(String),
+    #[error("llm gateway error: {0}")]
+    Llm(String),
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
     #[error("json error: {0}")]
@@ -28,6 +30,7 @@ impl IntoResponse for AppError {
             AppError::BadRequest(m) => (StatusCode::BAD_REQUEST, "bad_request", m.clone()),
             AppError::Fetch(m) => (StatusCode::BAD_GATEWAY, "fetch_failed", m.clone()),
             AppError::Parse(m) => (StatusCode::UNPROCESSABLE_ENTITY, "parse_failed", m.clone()),
+            AppError::Llm(m) => (StatusCode::BAD_GATEWAY, "llm_error", m.clone()),
             AppError::Io(m) => (StatusCode::INTERNAL_SERVER_ERROR, "io_error", m.to_string()),
             AppError::Json(m) => (StatusCode::INTERNAL_SERVER_ERROR, "json_error", m.to_string()),
             AppError::Internal(m) => (StatusCode::INTERNAL_SERVER_ERROR, "internal_error", m.clone()),

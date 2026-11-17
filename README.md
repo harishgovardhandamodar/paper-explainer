@@ -6,7 +6,8 @@ as you add papers**.
 
 The collection ships with one hand-curated paper. Add more from an arXiv / HTML link or by pasting
 text, and the backend deterministically extracts structure and weaves shared concepts into the same
-graph.
+graph. Optionally, a local Ollama model can write a friendlier narrative explanation through the
+`fox-services` LLM gateway — the deterministic data stays intact either way.
 
 ---
 
@@ -146,11 +147,50 @@ All settings are environment variables with sensible defaults:
 | `PAPER_EXPLAINER_DATA` | `data/store.json` | Persistence file |
 | `PAPER_EXPLAINER_DIST` | `frontend/dist` | Built frontend to serve |
 | `PAPER_EXPLAINER_API` | `http://localhost:8787` | Vite proxy target (dev only) |
+| `PAPER_EXPLAINER_OLLAMA_ENABLED` | `1` | Set to `0` to disable the AI enhancement tab |
+| `PAPER_EXPLAINER_OLLAMA_URL` | `http://localhost:8210` | Ollama-compatible gateway (fox-services on the host) |
+| `PAPER_EXPLAINER_OLLAMA_MODEL` | `qwen3.8:27b` | Model requested for explanations |
+| `PAPER_EXPLAINER_OLLAMA_TIMEOUT` | `300` | Request timeout in seconds (27B first load is slow) |
 
 Reset to a fresh seeded collection with:
 ```bash
 curl -X POST http://localhost:8787/api/reset
 ```
+
+---
+
+## AI enhancements (Ollama via fox-services)
+
+The **AI insights** tab adds an optional narrative layer on top of the deterministic explanation:
+a one-sentence TL;DR, a plain-language walkthrough, a step-by-step "how it works", key insights, and
+caveats. It is generated on demand, stored on the paper, and never replaces the curated or
+heuristic data.
+
+Requests go to the **fox-services LLM gateway**, not directly to Ollama. The host-facing Compose
+stack uses host networking, so the default `http://localhost:8210` reaches the gateway's published
+port. From a bridge-network container, use `http://fox-services:8210` instead:
+
+```bash
+PAPER_EXPLAINER_OLLAMA_URL=http://fox-services:8210 \
+PAPER_EXPLAINER_OLLAMA_MODEL=qwen3.8:27b \
+docker compose -f docker-compose.tailnet-host.yml up -d --build
+```
+
+The gateway publishes Ollama-compatible `/api/tags` and `/api/chat` endpoints and may reroute a
+request to another loaded model to manage GPU pressure. The UI shows both the requested model and
+the model that actually answered, so this is never hidden. Check readiness with:
+
+```bash
+curl http://localhost:8787/api/llm/status
+curl -X POST http://localhost:8787/api/papers/2609-10117/enhance
+```
+
+If the gateway is unavailable, the app still works normally — the AI tab simply reports it and
+leaves every other view untouched. Disable the feature entirely with
+`PAPER_EXPLAINER_OLLAMA_ENABLED=0`.
+
+> AI output can be wrong. Always cross-check numbers and claims against the paper and the
+> deterministic findings.
 
 ---
 
@@ -166,7 +206,13 @@ curl -X POST http://localhost:8787/api/reset
 - **Knowledge graph** — an interactive force-directed graph of papers, concepts, hypotheses,
   experiments and findings. Filter by type, focus on the active paper, inspect nodes, and add your
   own relations.
+- **AI insights** — optional Ollama-written explanation, key insights and caveats, with gateway
+  status and the actual model that answered. Stored per paper and regeneratable.
 - **Library** — all papers in the collection; add from URL or pasted text, re-import, or remove.
+- **Help & Design** — a guided, Mermaid-rich manual explaining how the app works: system context and
+  architecture, UML class/ER diagrams, activity/state/sequence flows, a diagram & Mermaid syntax
+  guide, runtime and Tailscale delivery, and the API. Documents are grouped in a rail with an
+  on-page outline, source view, and zoomable diagrams.
 
 ---
 
@@ -190,6 +236,9 @@ curl -X POST http://localhost:8787/api/reset
   Nodes are papers, concepts, hypotheses, experiments, findings, methods, datasets and metrics;
   shared concepts become bridges between papers. Rebuilds are deterministic, so the graph always
   reflects the current collection.
+- **`llm.rs`** optionally asks the configured Ollama model (via fox-services) for a structured
+  narrative explanation. It is fail-soft, repairs imperfect model JSON, and stores the result on
+  the paper.
 - **`store.rs`** persists `Store` as JSON with atomic writes. The interface is deliberately small so
   it can be swapped for SQLite or a graph database later.
 - The frontend mirrors the backend's types in `frontend/src/types.ts` and talks to the API through
@@ -215,6 +264,9 @@ curl -X POST http://localhost:8787/api/reset
 | `GET` | `/api/papers/{id}` | Full paper explanation |
 | `DELETE` | `/api/papers/{id}` | Remove a paper |
 | `POST` | `/api/papers/{id}/refresh` | Re-import from the original source |
+| `POST` | `/api/papers/{id}/enhance` | Generate/regenerate the AI explanation |
+| `DELETE` | `/api/papers/{id}/enhance` | Remove the stored AI explanation |
+| `GET` | `/api/llm/status` | Ollama gateway readiness and available models |
 | `GET` | `/api/papers/{id}/export` | Markdown export |
 | `GET` | `/api/graph` | Knowledge graph (nodes + edges) |
 | `GET` | `/api/graph/mermaid` | Graph as Mermaid source |

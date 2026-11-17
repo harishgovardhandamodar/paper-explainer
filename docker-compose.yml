@@ -50,10 +50,17 @@ services:
     network_mode: "service:tailscale"
     depends_on:
       - tailscale
+    # Let the app reach host-published services (fox-services Ollama gateway :8210).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - paper-data:/app/data
     environment:
       RUST_LOG: ${RUST_LOG:-paper_explainer=info,tower_http=warn}
+      PAPER_EXPLAINER_OLLAMA_ENABLED: ${PAPER_EXPLAINER_OLLAMA_ENABLED:-1}
+      PAPER_EXPLAINER_OLLAMA_URL: ${PAPER_EXPLAINER_OLLAMA_URL:-http://host.docker.internal:8210}
+      PAPER_EXPLAINER_OLLAMA_MODEL: ${PAPER_EXPLAINER_OLLAMA_MODEL:-qwen3.8:27b}
+      PAPER_EXPLAINER_OLLAMA_TIMEOUT: ${PAPER_EXPLAINER_OLLAMA_TIMEOUT:-300}
 
 volumes:
   tailscale-state:

@@ -22,6 +22,12 @@ services:
       PAPER_EXPLAINER_HOST: ${TAILNET_IP:-100.69.169.113}
       PAPER_EXPLAINER_PORT: 8787
       RUST_LOG: ${RUST_LOG:-paper_explainer=info,tower_http=warn}
+      # Host networking: localhost:8210 is the fox-services Ollama gateway.
+      # Override with http://fox-services:8210 if you attach to its bridge network.
+      PAPER_EXPLAINER_OLLAMA_ENABLED: ${PAPER_EXPLAINER_OLLAMA_ENABLED:-1}
+      PAPER_EXPLAINER_OLLAMA_URL: ${PAPER_EXPLAINER_OLLAMA_URL:-http://localhost:8210}
+      PAPER_EXPLAINER_OLLAMA_MODEL: ${PAPER_EXPLAINER_OLLAMA_MODEL:-qwen3.8:27b}
+      PAPER_EXPLAINER_OLLAMA_TIMEOUT: ${PAPER_EXPLAINER_OLLAMA_TIMEOUT:-300}
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://${TAILNET_IP:-100.69.169.113}:8787/api/health >/dev/null || exit 1"]
       interval: 30s

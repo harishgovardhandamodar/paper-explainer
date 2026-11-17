@@ -65,6 +65,7 @@ pub async fn ingest_paper(req: IngestRequest, store: &StoreHandle) -> AppResult<
         concepts: extraction.concepts,
         sections: doc.sections,
         notes: extraction.notes,
+        enhancement: None,
     };
 
     store.upsert_paper(paper)

@@ -44,6 +44,7 @@ pub fn seed_paper() -> Paper {
             "Curated from the full paper, including Tables 1–9 and Appendices C–F.".into(),
             "The authors explicitly do not claim universal security for O_ext — see the caveat on the key finding.".into(),
         ],
+        enhancement: None,
     }
 }
 
