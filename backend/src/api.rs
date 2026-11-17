@@ -34,6 +34,18 @@ pub async fn list_papers(State(state): State<ApiState>) -> ApiResult<Json<Vec<Pa
     Ok(Json(state.store.list_papers()?))
 }
 
+/// Faceted, filtered, sorted and paginated library retrieval for large corpora.
+pub async fn library(
+    State(state): State<ApiState>, Query(params): Query<LibraryQuery>,
+) -> ApiResult<Json<LibraryResponse>> {
+    Ok(Json(state.store.query_library(&params)?))
+}
+
+/// Stable category taxonomy metadata (ids, labels, descriptions, tones).
+pub async fn categories() -> Json<Vec<CategoryDef>> {
+    Json(crate::categories::category_defs())
+}
+
 pub async fn get_paper(
     State(state): State<ApiState>, Path(id): Path<String>,
 ) -> ApiResult<Json<Paper>> {
@@ -157,7 +169,8 @@ pub async fn search(
         let mut push = |kind: &str, id: String, title: String, body: String| {
             if body.to_lowercase().contains(&needle) || title.to_lowercase().contains(&needle) {
                 out.push(SearchResult {
-                    paper_id: p.id.clone(), paper_title: p.title.clone(), kind: kind.into(),
+                    paper_id: p.id.clone(), paper_title: p.title.clone(),
+                    paper_category: p.primary_category.clone(), kind: kind.into(),
                     id, title, snippet: truncate_snippet(&body, &needle, 180),
                 });
             }

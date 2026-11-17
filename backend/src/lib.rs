@@ -1,4 +1,5 @@
 pub mod api;
+pub mod categories;
 pub mod error;
 pub mod explain;
 pub mod graph;
@@ -20,6 +21,8 @@ pub fn build_router(state: api::ApiState, dist: &Path) -> Router {
     let routes = Router::new()
         .route("/api/health", get(api::health))
         .route("/api/papers", get(api::list_papers).post(api::add_paper))
+        .route("/api/library", get(api::library))
+        .route("/api/categories", get(api::categories))
         .route("/api/papers/{id}", get(api::get_paper).delete(api::delete_paper))
         .route("/api/papers/{id}/refresh", post(api::refresh))
         .route("/api/papers/{id}/enhance", post(api::enhance_paper).delete(api::clear_enhancement))

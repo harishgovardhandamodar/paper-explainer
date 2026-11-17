@@ -194,6 +194,33 @@ leaves every other view untouched. Disable the feature entirely with
 
 ---
 
+## Categorization & large-library retrieval
+
+As the collection grows past a few dozen papers, the Library stays navigable through **facets**
+rather than one long grid:
+
+- Every paper is assigned up to three subject **categories** by a deterministic, weighted keyword
+  model in `backend/src/categories.rs` — no LLM required. The highest-scoring one is its
+  `primary_category`. Papers saved before this feature are backfilled at startup.
+- `GET /api/library` does the filtering, sorting and pagination in Rust and returns the page together
+  with **facet counts** (categories, tags, sources, statuses, years) and the category taxonomy, so
+  the UI renders from a single request.
+- The Library supports free-text search, category/tag/source/status/year filters, five sort modes,
+  a **group-by-category** view, active-filter chips and 12-per-page pagination.
+- The stable taxonomy is also available as `GET /api/categories`, and search results carry each
+  hit's `paper_category`.
+
+`GET /api/papers` is unchanged — it still returns the simple summary list used by the sidebar.
+See the **Categorization & retrieval** document in the Help & Design tab for diagrams and filter
+semantics.
+
+```bash
+curl 'http://localhost:8787/api/library?category=security-privacy&sort=findings&limit=12&offset=0'
+curl http://localhost:8787/api/categories
+```
+
+---
+
 ## What you get
 
 - **Overview** — the paper in plain language, headline numbers, and jump-off points.
@@ -208,7 +235,10 @@ leaves every other view untouched. Disable the feature entirely with
   own relations.
 - **AI insights** — optional Ollama-written explanation, key insights and caveats, with gateway
   status and the actual model that answered. Stored per paper and regeneratable.
-- **Library** — all papers in the collection; add from URL or pasted text, re-import, or remove.
+- **Library** — a faceted browser for the whole collection: automatically derived subject categories,
+  facet counts, text search, tag/source/status/year filters, sorting, group-by-category view and
+  pagination. Add from URL or pasted text, re-import, or remove. Categories are deterministic (no LLM
+  needed) and old papers are backfilled on startup.
 - **Help & Design** — a guided, Mermaid-rich manual explaining how the app works: system context and
   architecture, UML class/ER diagrams, activity/state/sequence flows, a diagram & Mermaid syntax
   guide, runtime and Tailscale delivery, and the API. Documents are grouped in a rail with an
@@ -259,7 +289,9 @@ leaves every other view untouched. Disable the feature entirely with
 |---|---|---|
 | `GET` | `/api/health` | Service info and counts |
 | `GET` | `/api/stats` | Collection statistics |
-| `GET` | `/api/papers` | Paper summaries |
+| `GET` | `/api/papers` | Paper summaries (simple list, unchanged) |
+| `GET` | `/api/library` | Faceted library: `q`, `category`, `tag`, `source`, `status`, `year_from`, `year_to`, `sort`, `limit`, `offset` → page + totals + facet counts + taxonomy |
+| `GET` | `/api/categories` | Category taxonomy (ids, labels, descriptions, tones) |
 | `POST` | `/api/papers` | Ingest a paper (`{ "url", "text"?, "title"?, "overwrite"? }`) |
 | `GET` | `/api/papers/{id}` | Full paper explanation |
 | `DELETE` | `/api/papers/{id}` | Remove a paper |

@@ -1,8 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { api } from './api';
 import { MermaidDiagram } from './components/MermaidDiagram';
 import { ForceGraph, NODE_COLORS, NODE_LABELS } from './components/KnowledgeGraph';
 import { Badge, Chips, Empty, PageHead, SectionDivider, StatCard, relativeDate } from './components/ui';
-import type { EdgeKind, GraphEdge, GraphNode, KnowledgeGraph, NodeKind, Paper, PaperSummary, Stats } from './types';
+import type {
+  CategoryDef, EdgeKind, FacetCount, GraphEdge, GraphNode, KnowledgeGraph, LibraryResponse,
+  NodeKind, Paper, PaperSummary, Stats,
+} from './types';
 
 export type ViewKey = 'overview' | 'hypotheses' | 'experiments' | 'diagrams' | 'workflows' | 'findings' | 'graph' | 'library' | 'design' | 'ai';
 
@@ -442,7 +446,70 @@ export function GraphView({ graph, activePaperId, onAddEdge }: {
   );
 }
 
-/* -------------------------------- Library --------------------------------- */
+const LIBRARY_PAGE_SIZE = 12;
+
+function FacetGroup({ title, items, active, onPick, labelFor }: {
+  title: string;
+  items: FacetCount[];
+  active: string;
+  onPick: (value: string) => void;
+  labelFor?: (item: FacetCount) => string;
+}) {
+  if (!items.length) return null;
+  return (
+    <div className="facet-group">
+      <div className="facet-title">{title}</div>
+      <div className="facet-options">
+        {items.map((item) => (
+          <button key={item.value} type="button"
+            className={`facet-option ${active === item.value ? 'active' : ''}`}
+            onClick={() => onPick(item.value)} title={item.label}>
+            <span className="facet-label">{labelFor ? labelFor(item) : item.label}</span>
+            <span className="facet-count">{item.count}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LibraryPaperCard({ p, categoryLabel, categoryTone, onOpen, onDelete }: {
+  p: PaperSummary;
+  categoryLabel: (id: string) => string;
+  categoryTone: (id: string) => string;
+  onOpen: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <div className="card paper-card">
+      <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
+        {p.primary_category && <Badge tone={categoryTone(p.primary_category)}>{categoryLabel(p.primary_category)}</Badge>}
+        {p.categories.filter((c) => c !== p.primary_category).slice(0, 2).map((c) => (
+          <span key={c} className="chip mono" title="Also categorised as">{categoryLabel(c)}</span>
+        ))}
+        <Badge tone={p.source}>{p.source.replace('_', ' ')}</Badge>
+        <Badge tone={p.status}>{p.status}</Badge>
+        <span className="tiny faint mono" style={{ marginLeft: 'auto' }}>{relativeDate(p.added_at)}</span>
+      </div>
+      <h3>{p.title}</h3>
+      <div className="pc-summary">{p.summary}</div>
+      {p.tags.length > 0 && <Chips items={p.tags.slice(0, 6)} />}
+      <div className="pc-counts">
+        <span>{p.counts.hypotheses} hypotheses</span><span>{p.counts.experiments} experiments</span>
+        <span>{p.counts.findings} findings</span><span>{p.counts.concepts} concepts</span>
+      </div>
+      <div className="pc-foot">
+        <button className="btn sm primary" onClick={() => onOpen(p.id)}>Open explanation →</button>
+        <div className="row">
+          {p.url && !p.url.startsWith('pasted://') &&
+            <a className="btn sm" href={p.url} target="_blank" rel="noreferrer">Source ↗</a>}
+          <button className="btn sm danger" onClick={() => onDelete(p.id)}>Remove</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function LibraryView({ papers, stats, onOpen, onDelete, onAdd }: {
   papers: PaperSummary[];
   stats: Stats;
@@ -450,10 +517,97 @@ export function LibraryView({ papers, stats, onOpen, onDelete, onAdd }: {
   onDelete: (id: string) => void;
   onAdd: () => void;
 }) {
+  const [q, setQ] = useState('');
+  const [category, setCategory] = useState('');
+  const [tag, setTag] = useState('');
+  const [source, setSource] = useState('');
+  const [status, setStatus] = useState('');
+  const [yearFrom, setYearFrom] = useState('');
+  const [yearTo, setYearTo] = useState('');
+  const [sort, setSort] = useState('recent');
+  const [groupBy, setGroupBy] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [data, setData] = useState<LibraryResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Re-fetch when the collection changes (add / delete / refresh / categorise).
+  const refreshToken = useMemo(
+    () => papers.map((p) => `${p.id}:${p.title}:${p.primary_category}`).join('|'),
+    [papers],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      setLoading(true);
+      try {
+        const resp = await api.library({
+          q, category, tag, source, status,
+          year_from: yearFrom ? Number(yearFrom) : undefined,
+          year_to: yearTo ? Number(yearTo) : undefined,
+          sort,
+          limit: groupBy ? 200 : LIBRARY_PAGE_SIZE,
+          offset: groupBy ? 0 : offset,
+        });
+        if (!cancelled) setData(resp);
+      } catch {
+        if (!cancelled) setData(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }, 180);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [q, category, tag, source, status, yearFrom, yearTo, sort, groupBy, offset, refreshToken]);
+
+  // Any filter change returns to the first page.
+  useEffect(() => { setOffset(0); }, [q, category, tag, source, status, yearFrom, yearTo, sort]);
+
+  const categories: CategoryDef[] = data?.categories ?? [];
+  const catMap = new Map(categories.map((c) => [c.id, c]));
+  const categoryLabel = (id: string) => catMap.get(id)?.label ?? id;
+  const categoryTone = (id: string) => catMap.get(id)?.tone ?? '';
+  const facets = data?.facets ?? { categories: [], tags: [], sources: [], statuses: [], years: [] };
+
+  const clearAll = () => {
+    setQ(''); setCategory(''); setTag(''); setSource(''); setStatus(''); setYearFrom(''); setYearTo('');
+  };
+  const activeFilters: { label: string; clear: () => void }[] = [];
+  if (q) activeFilters.push({ label: `“${q}”`, clear: () => setQ('') });
+  if (category) activeFilters.push({ label: categoryLabel(category), clear: () => setCategory('') });
+  if (tag) activeFilters.push({ label: `#${tag}`, clear: () => setTag('') });
+  if (source) activeFilters.push({ label: source.replace('_', ' '), clear: () => setSource('') });
+  if (status) activeFilters.push({ label: status, clear: () => setStatus('') });
+  if (yearFrom || yearTo) activeFilters.push({
+    label: `${yearFrom || '…'}–${yearTo || '…'}`,
+    clear: () => { setYearFrom(''); setYearTo(''); },
+  });
+
+  const shown = data?.papers ?? [];
+  const total = data?.total ?? 0;
+  const collectionTotal = data?.collection_total ?? stats.papers;
+  const pages = Math.max(1, Math.ceil(total / LIBRARY_PAGE_SIZE));
+  const page = Math.floor(offset / LIBRARY_PAGE_SIZE) + 1;
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, PaperSummary[]>();
+    shown.forEach((p) => {
+      const key = p.primary_category || 'other';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(p);
+    });
+    return Array.from(map.entries()).sort((a, b) => {
+      const ia = categories.findIndex((c) => c.id === a[0]);
+      const ib = categories.findIndex((c) => c.id === b[0]);
+      return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
+    });
+  }, [shown, categories]);
+
   return (
     <div className="content-inner">
       <PageHead eyebrow="Your collection" title="Paper library">
-        Every paper contributes hypotheses, experiments and concepts to the shared knowledge graph.
+        Browse, filter and group {collectionTotal} paper{collectionTotal === 1 ? '' : 's'} by subject,
+        tag, source and year. Categories are derived from each paper automatically, so the library
+        stays navigable as it grows.
       </PageHead>
       <div className="stat-grid" style={{ marginBottom: 18 }}>
         <StatCard num={stats.papers} label="Papers" tone="accent" />
@@ -461,31 +615,128 @@ export function LibraryView({ papers, stats, onOpen, onDelete, onAdd }: {
         <StatCard num={stats.findings} label="Findings" tone="green" />
         <StatCard num={stats.graph_edges} label="Graph relations" tone="violet" />
       </div>
-      <div className="grid-2">
-        {papers.map((p) => (
-          <div key={p.id} className="card paper-card">
-            <div className="row"><Badge tone={p.source}>{p.source}</Badge><Badge tone={p.status}>{p.status}</Badge>
-              <span className="tiny faint mono" style={{ marginLeft: 'auto' }}>{relativeDate(p.added_at)}</span></div>
-            <h3>{p.title}</h3>
-            <div className="pc-summary">{p.summary}</div>
-            <div className="pc-counts">
-              <span>{p.counts.hypotheses} hypotheses</span><span>{p.counts.experiments} experiments</span>
-              <span>{p.counts.findings} findings</span><span>{p.counts.concepts} concepts</span>
+
+      <div className="library-filters">
+        <div className="library-search">
+          <span className="search-icon">⌕</span>
+          <input value={q} onChange={(e) => setQ(e.target.value)}
+            placeholder="Search titles, summaries, tags, categories…" />
+        </div>
+        <select className="filter-select" value={category} onChange={(e) => setCategory(e.target.value)} title="Category">
+          <option value="">All categories</option>
+          {categories.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+        </select>
+        <select className="filter-select" value={tag} onChange={(e) => setTag(e.target.value)} title="Tag">
+          <option value="">All tags</option>
+          {facets.tags.slice(0, 30).map((t) => <option key={t.value} value={t.value}>{t.label} ({t.count})</option>)}
+        </select>
+        <select className="filter-select" value={source} onChange={(e) => setSource(e.target.value)} title="Source">
+          <option value="">All sources</option>
+          {facets.sources.map((s) => <option key={s.value} value={s.value}>{s.label} ({s.count})</option>)}
+        </select>
+        <select className="filter-select" value={status} onChange={(e) => setStatus(e.target.value)} title="Status">
+          <option value="">All statuses</option>
+          {facets.statuses.map((s) => <option key={s.value} value={s.value}>{s.label} ({s.count})</option>)}
+        </select>
+        <select className="filter-select narrow" value={yearFrom} onChange={(e) => setYearFrom(e.target.value)} title="Year from">
+          <option value="">Year from</option>
+          {facets.years.map((y) => <option key={y.value} value={y.value}>{y.label}</option>)}
+        </select>
+        <select className="filter-select narrow" value={yearTo} onChange={(e) => setYearTo(e.target.value)} title="Year to">
+          <option value="">Year to</option>
+          {facets.years.map((y) => <option key={y.value} value={y.value}>{y.label}</option>)}
+        </select>
+      </div>
+
+      <div className="library-toolbar">
+        <div className="library-result-count">
+          {loading && !data ? 'Searching…' : (
+            <><strong>{total}</strong> of {collectionTotal} paper{total === 1 ? '' : 's'}</>
+          )}
+          {activeFilters.map((f, i) => (
+            <button key={i} type="button" className="active-filter" onClick={f.clear} title="Remove filter">
+              {f.label} <span>×</span>
+            </button>
+          ))}
+          {activeFilters.length > 0 && <button type="button" className="link-btn" onClick={clearAll}>Clear all</button>}
+        </div>
+        <div className="library-toolbar-actions">
+          <label className="group-toggle">
+            <input type="checkbox" checked={groupBy} onChange={(e) => setGroupBy(e.target.checked)} />
+            Group by category
+          </label>
+          <select className="filter-select" value={sort} onChange={(e) => setSort(e.target.value)} title="Sort">
+            <option value="recent">Newest first</option>
+            <option value="title">Title A–Z</option>
+            <option value="year">Year (newest)</option>
+            <option value="findings">Most findings</option>
+            <option value="relevance">Relevance</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="library-layout">
+        <aside className="facet-panel">
+          <FacetGroup title="Categories" active={category} items={facets.categories}
+            onPick={(v) => setCategory((cur) => (cur === v ? '' : v))}
+            labelFor={(i) => categoryLabel(i.value)} />
+          <FacetGroup title="Tags" active={tag} items={facets.tags.slice(0, 16)}
+            onPick={(v) => setTag((cur) => (cur === v ? '' : v))} />
+          <FacetGroup title="Source" active={source} items={facets.sources}
+            onPick={(v) => setSource((cur) => (cur === v ? '' : v))} />
+          <FacetGroup title="Status" active={status} items={facets.statuses}
+            onPick={(v) => setStatus((cur) => (cur === v ? '' : v))} />
+          <FacetGroup title="Year" active={yearFrom} items={facets.years}
+            onPick={(v) => { setYearFrom((cur) => (cur === v ? '' : v)); setYearTo((cur) => (cur === v ? '' : v)); }} />
+        </aside>
+
+        <div className={`library-results ${loading ? 'is-loading' : ''}`}>
+          {shown.length === 0 && !loading ? (
+            <Empty icon="⌕" title="No papers match">
+              Try clearing a filter or broadening your search.
+              <div style={{ marginTop: 12 }}><button className="btn sm" onClick={clearAll}>Clear filters</button></div>
+            </Empty>
+          ) : groupBy ? (
+            <div className="library-groups">
+              {grouped.map(([catId, items]) => (
+                <section key={catId} className="library-group">
+                  <div className="group-head">
+                    <span className={`cat-dot ${categoryTone(catId)}`} />
+                    <h2>{categoryLabel(catId)}</h2>
+                    <span className="group-count">{items.length}</span>
+                  </div>
+                  <div className="grid-2">
+                    {items.map((p) => (
+                      <LibraryPaperCard key={p.id} p={p} categoryLabel={categoryLabel}
+                        categoryTone={categoryTone} onOpen={onOpen} onDelete={onDelete} />
+                    ))}
+                  </div>
+                </section>
+              ))}
             </div>
-            <div className="pc-foot">
-              <button className="btn sm primary" onClick={() => onOpen(p.id)}>Open explanation →</button>
-              <div className="row">
-                <a className="btn sm" href={p.url} target="_blank" rel="noreferrer">Source ↗</a>
-                <button className="btn sm danger" onClick={() => onDelete(p.id)}>Remove</button>
+          ) : (
+            <>
+              <div className="grid-2">
+                {shown.map((p) => (
+                  <LibraryPaperCard key={p.id} p={p} categoryLabel={categoryLabel}
+                    categoryTone={categoryTone} onOpen={onOpen} onDelete={onDelete} />
+                ))}
+                <button className="card paper-card" onClick={onAdd}
+                  style={{ borderStyle: 'dashed', cursor: 'pointer', alignItems: 'center', justifyContent: 'center', minHeight: 220 }}>
+                  <div style={{ fontSize: 30 }}>＋</div><div className="card-title">Add a paper</div>
+                  <div className="small muted">From an arXiv link or pasted text</div>
+                </button>
               </div>
-            </div>
-          </div>
-        ))}
-        <button className="card paper-card" onClick={onAdd}
-          style={{ borderStyle: 'dashed', cursor: 'pointer', alignItems: 'center', justifyContent: 'center', minHeight: 220 }}>
-          <div style={{ fontSize: 30 }}>＋</div><div className="card-title">Add a paper</div>
-          <div className="small muted">From an arXiv link or pasted text</div>
-        </button>
+              {total > LIBRARY_PAGE_SIZE && (
+                <div className="pagination">
+                  <button className="btn sm" disabled={page <= 1} onClick={() => setOffset((page - 2) * LIBRARY_PAGE_SIZE)}>← Previous</button>
+                  <span className="page-indicator">Page {page} of {pages}</span>
+                  <button className="btn sm" disabled={page >= pages} onClick={() => setOffset(page * LIBRARY_PAGE_SIZE)}>Next →</button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

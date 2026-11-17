@@ -1,5 +1,6 @@
 //! Orchestrates URL → parsed document → structured explanation → stored paper.
 
+use crate::categories::categorize;
 use crate::error::{AppError, AppResult};
 use crate::explain::explain;
 use crate::models::*;
@@ -48,11 +49,13 @@ pub async fn ingest_paper(req: IngestRequest, store: &StoreHandle) -> AppResult<
     let now = Utc::now();
     let source = if has_text { PaperSource::Manual } else { PaperSource::Heuristic };
 
-    let paper = Paper {
+    let mut paper = Paper {
         id: id.clone(), title, authors: doc.authors, year, url, venue,
         abstract_text: doc.abstract_text,
         summary: extraction.summary,
         tags: extraction.tags,
+        categories: Vec::new(),
+        primary_category: String::new(),
         status: if extraction.experiments.is_empty() { PaperStatus::Failed } else { PaperStatus::Ready },
         source,
         added_at: now,
@@ -67,6 +70,9 @@ pub async fn ingest_paper(req: IngestRequest, store: &StoreHandle) -> AppResult<
         notes: extraction.notes,
         enhancement: None,
     };
+    let (categories, primary) = categorize(&paper);
+    paper.categories = categories;
+    paper.primary_category = primary;
 
     store.upsert_paper(paper)
 }

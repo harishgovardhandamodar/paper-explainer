@@ -1,5 +1,6 @@
 import type {
-  Health, IngestRequest, KnowledgeGraph, LlmStatus, Paper, PaperSummary, SearchResult, Stats, GraphEdge,
+  CategoryDef, GraphEdge, Health, IngestRequest, KnowledgeGraph, LibraryQuery, LibraryResponse,
+  LlmStatus, Paper, PaperSummary, SearchResult, Stats,
 } from './types';
 
 const BASE = '/api';
@@ -25,6 +26,15 @@ export const api = {
   health: () => request<Health>('/health'),
   stats: () => request<Stats>('/stats'),
   listPapers: () => request<PaperSummary[]>('/papers'),
+  categories: () => request<CategoryDef[]>('/categories'),
+  library: (params: LibraryQuery = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') qs.set(key, String(value));
+    });
+    const suffix = qs.toString();
+    return request<LibraryResponse>(`/library${suffix ? `?${suffix}` : ''}`);
+  },
   getPaper: (id: string) => request<Paper>(`/papers/${encodeURIComponent(id)}`),
   addPaper: (body: IngestRequest) =>
     request<Paper>('/papers', { method: 'POST', body: JSON.stringify(body) }),

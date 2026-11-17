@@ -24,6 +24,8 @@ export interface PaperSummary {
   url: string;
   summary: string;
   tags: string[];
+  categories: string[];
+  primary_category: string;
   status: PaperStatus;
   source: PaperSource;
   added_at: string;
@@ -204,10 +206,56 @@ export interface Health {
 export interface SearchResult {
   paper_id: string;
   paper_title: string;
+  paper_category: string;
   kind: string;
   id: string;
   title: string;
   snippet: string;
+}
+
+/* ------------------------- Categorisation / library ------------------------ */
+export interface CategoryDef {
+  id: string;
+  label: string;
+  description: string;
+  tone: string;
+}
+
+export interface FacetCount {
+  value: string;
+  label: string;
+  count: number;
+}
+
+export interface LibraryFacets {
+  categories: FacetCount[];
+  tags: FacetCount[];
+  sources: FacetCount[];
+  statuses: FacetCount[];
+  years: FacetCount[];
+}
+
+export interface LibraryResponse {
+  papers: PaperSummary[];
+  total: number;
+  collection_total: number;
+  limit: number;
+  offset: number;
+  facets: LibraryFacets;
+  categories: CategoryDef[];
+}
+
+export interface LibraryQuery {
+  q?: string;
+  category?: string;
+  tag?: string;
+  source?: string;
+  status?: string;
+  year_from?: number;
+  year_to?: number;
+  sort?: string;
+  limit?: number;
+  offset?: number;
 }
 
 export interface IngestRequest {

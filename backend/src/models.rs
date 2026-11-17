@@ -46,6 +46,10 @@ pub struct Paper {
     /// Plain-language overview of the whole paper.
     pub summary: String,
     pub tags: Vec<String>,
+    /// Subject categories derived deterministically from the paper text.
+    /// Up to three stable taxonomy ids; the first is the primary category.
+    pub categories: Vec<String>,
+    pub primary_category: String,
     pub status: PaperStatus,
     pub source: PaperSource,
     pub added_at: DateTime<Utc>,
@@ -108,7 +112,8 @@ impl Default for Paper {
         Self {
             id: String::new(), title: String::new(), authors: Vec::new(), year: None,
             url: String::new(), venue: None, abstract_text: String::new(), summary: String::new(),
-            tags: Vec::new(), status: PaperStatus::Ready, source: PaperSource::Heuristic,
+            tags: Vec::new(), categories: Vec::new(), primary_category: String::new(),
+            status: PaperStatus::Ready, source: PaperSource::Heuristic,
             added_at: now, updated_at: now, hypotheses: Vec::new(), experiments: Vec::new(),
             findings: Vec::new(), diagrams: Vec::new(), workflows: Vec::new(),
             concepts: Vec::new(), sections: Vec::new(), notes: Vec::new(),
@@ -127,6 +132,8 @@ impl Paper {
             url: self.url.clone(),
             summary: self.summary.clone(),
             tags: self.tags.clone(),
+            categories: self.categories.clone(),
+            primary_category: self.primary_category.clone(),
             status: self.status.clone(),
             source: self.source.clone(),
             added_at: self.added_at,
@@ -144,6 +151,7 @@ impl Paper {
     pub fn all_text(&self) -> String {
         let mut parts = vec![self.title.clone(), self.summary.clone(), self.abstract_text.clone()];
         parts.extend(self.tags.iter().cloned());
+        parts.extend(self.categories.iter().cloned());
         parts.extend(self.concepts.iter().map(|c| format!("{} {}", c.name, c.definition)));
         parts.extend(self.hypotheses.iter().map(|h| format!("{} {}", h.statement, h.simplified)));
         parts.extend(self.experiments.iter().map(|e| {
@@ -162,6 +170,8 @@ pub struct PaperSummary {
     pub url: String,
     pub summary: String,
     pub tags: Vec<String>,
+    pub categories: Vec<String>,
+    pub primary_category: String,
     pub status: PaperStatus,
     pub source: PaperSource,
     pub added_at: DateTime<Utc>,
@@ -550,8 +560,91 @@ pub struct StatsResponse {
 pub struct SearchResult {
     pub paper_id: String,
     pub paper_title: String,
+    /// Primary subject category of the paper this hit belongs to.
+    pub paper_category: String,
     pub kind: String,
     pub id: String,
     pub title: String,
     pub snippet: String,
+}
+
+// ---------------------------------------------------------------------------
+// Categorisation & faceted library retrieval
+// ---------------------------------------------------------------------------
+
+/// Stable taxonomy metadata used to render category labels and colours.
+#[derive(Debug, Clone, Serialize)]
+pub struct CategoryDef {
+    pub id: String,
+    pub label: String,
+    pub description: String,
+    pub tone: String,
+}
+
+/// One selectable value in a facet, with how many papers carry it.
+#[derive(Debug, Clone, Serialize)]
+pub struct FacetCount {
+    pub value: String,
+    pub label: String,
+    pub count: usize,
+}
+
+/// Counts for each browse facet, computed over the whole collection so the
+/// numbers stay meaningful while filters are applied.
+#[derive(Debug, Clone, Serialize)]
+pub struct LibraryFacets {
+    pub categories: Vec<FacetCount>,
+    pub tags: Vec<FacetCount>,
+    pub sources: Vec<FacetCount>,
+    pub statuses: Vec<FacetCount>,
+    pub years: Vec<FacetCount>,
+}
+
+/// A filtered, sorted, paginated slice of the library plus everything the UI
+/// needs to render facets and category labels without extra round-trips.
+#[derive(Debug, Clone, Serialize)]
+pub struct LibraryResponse {
+    pub papers: Vec<PaperSummary>,
+    /// Total number of papers matching the current filters.
+    pub total: usize,
+    /// Number of papers in the collection before filtering.
+    pub collection_total: usize,
+    pub limit: usize,
+    pub offset: usize,
+    pub facets: LibraryFacets,
+    pub categories: Vec<CategoryDef>,
+}
+
+/// Query parameters accepted by `GET /api/library`. All fields are optional so
+/// clients can request just a page, just a filter, or the whole catalogue.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct LibraryQuery {
+    /// Free-text search over title, summary, tags, categories and structure.
+    pub q: String,
+    /// Category id; empty means all categories.
+    pub category: String,
+    /// Tag (case-insensitive exact match); empty means all tags.
+    pub tag: String,
+    /// Source name (curated, heuristic, llm_assisted, manual).
+    pub source: String,
+    /// Status name (ready, processing, failed).
+    pub status: String,
+    pub year_from: Option<u32>,
+    pub year_to: Option<u32>,
+    /// recent | title | year | relevance | findings
+    pub sort: String,
+    pub limit: usize,
+    pub offset: usize,
+}
+
+impl Default for LibraryQuery {
+    fn default() -> Self {
+        Self {
+            q: String::new(), category: String::new(), tag: String::new(),
+            source: String::new(), status: String::new(),
+            year_from: None, year_to: None,
+            sort: "recent".into(), limit: 12, offset: 0,
+        }
+    }
 }

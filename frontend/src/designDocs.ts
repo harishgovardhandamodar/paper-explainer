@@ -11,6 +11,7 @@ export const DESIGN_DOCS: DesignDoc[] = [
   { id: 'architecture', file: '/design/02-architecture.md', title: 'System architecture', group: 'Architecture', answers: 'Components, layers, deployment' },
   { id: 'uml', file: '/design/03-uml.md', title: 'UML — components & classes', group: 'Architecture', answers: 'Static structure: classes, enums, interfaces' },
   { id: 'data-model', file: '/design/05-data-model.md', title: 'Data model & graph', group: 'Architecture', answers: 'Entities, relationships, persistence' },
+  { id: 'categorization', file: '/design/09-categorization.md', title: 'Categorization & retrieval', group: 'Architecture', answers: 'Taxonomy, facets, filtering, pagination' },
   { id: 'activity', file: '/design/04-activity.md', title: 'Activity & control flow', group: 'Dynamics', answers: 'Ingestion, search, graph rebuild, states' },
   { id: 'runtime', file: '/design/07-runtime-delivery.md', title: 'Runtime & delivery', group: 'Dynamics', answers: 'Build, routing, Tailscale, API' },
   { id: 'ai', file: '/design/08-ai-enhancement.md', title: 'AI enhancement layer', group: 'Dynamics', answers: 'Ollama via fox-services, routing, JSON contract' },

@@ -4,6 +4,7 @@
 //! On-Device LLM Protection" (CCS '26). Content below was extracted from the
 //! paper's sections, tables and research questions.
 
+use crate::categories::categorize;
 use crate::models::*;
 use crate::util::make_id;
 use chrono::Utc;
@@ -13,7 +14,7 @@ pub const SEED_URL: &str = "https://arxiv.org/html/2609.10117v2";
 
 pub fn seed_paper() -> Paper {
     let now = Utc::now();
-    Paper {
+    let mut paper = Paper {
         id: SEED_ID.into(),
         title: "Understanding the Security Boundary of Obfuscation-based On-Device LLM Protection".into(),
         authors: vec![
@@ -29,6 +30,8 @@ pub fn seed_paper() -> Paper {
             "security".into(), "on-device LLM".into(), "TEE".into(), "obfuscation".into(),
             "model extraction".into(), "systematization".into(), "CCS '26".into(),
         ],
+        categories: Vec::new(),
+        primary_category: String::new(),
         status: PaperStatus::Ready,
         source: PaperSource::Curated,
         added_at: now,
@@ -45,7 +48,11 @@ pub fn seed_paper() -> Paper {
             "The authors explicitly do not claim universal security for O_ext — see the caveat on the key finding.".into(),
         ],
         enhancement: None,
-    }
+    };
+    let (categories, primary) = categorize(&paper);
+    paper.categories = categories;
+    paper.primary_category = primary;
+    paper
 }
 
 fn abstract_text() -> String {
