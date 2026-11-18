@@ -115,7 +115,7 @@ export function SourceView({ paper, onNavigate }: { paper: Paper; onNavigate: (v
                 <div className="eyebrow">{lensLabel(audience, kind === 'Experiment' ? 'Experiments' : kind === 'Finding' ? 'Findings' : 'Hypotheses')} · {group.length}</div>
                 {group.map((c) => (
                   <button key={c.id} className={`src-claim ${active?.id === c.id ? 'active' : ''}`} onClick={() => setClaimId(c.id)}>
-                    <span className="src-claim-id">{c.id}</span>
+                    <span className="src-claim-id" title={c.id}>{c.id}</span>
                     <span className="src-claim-text">{c.text.slice(0, 150)}{c.text.length > 150 ? '…' : ''}</span>
                     <span className="src-claim-meta">{c.label}{c.anchor ? ` · ${c.anchor}` : ''}</span>
                   </button>
