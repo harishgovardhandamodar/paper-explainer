@@ -874,6 +874,82 @@ impl StoreHandle {
         Ok(if changed { 1 } else { 0 })
     }
 
+    // -- Version history ------------------------------------------------------
+
+    /// Capture the current paper before a risky operation. Persisted immediately
+    /// so the snapshot survives even if the operation that follows fails.
+    pub fn create_snapshot(
+        &self, paper_id: &str, reason: SnapshotReason, label: Option<String>,
+    ) -> AppResult<PaperSnapshot> {
+        let snapshot = {
+            let guard = self.read()?;
+            let paper = guard.find_paper(paper_id)
+                .ok_or_else(|| AppError::NotFound(format!("paper '{paper_id}'")))?;
+            crate::versions::create(paper, reason, label)?
+        };
+        {
+            let mut guard = self.write()?;
+            guard.snapshots.push(snapshot.clone());
+            crate::versions::prune(&mut guard.snapshots, paper_id, 25);
+        }
+        self.flush()?;
+        Ok(snapshot)
+    }
+
+    pub fn list_snapshots(&self, paper_id: &str) -> AppResult<Vec<PaperSnapshot>> {
+        let guard = self.read()?;
+        let mut list: Vec<PaperSnapshot> = guard.snapshots.iter()
+            .filter(|s| s.paper_id == paper_id).cloned().collect();
+        list.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        Ok(list)
+    }
+
+    pub fn get_snapshot(&self, paper_id: &str, snapshot_id: &str) -> AppResult<PaperSnapshot> {
+        self.read()?.snapshots.iter()
+            .find(|s| s.paper_id == paper_id && s.id == snapshot_id).cloned()
+            .ok_or_else(|| AppError::NotFound(format!("snapshot '{snapshot_id}'")))
+    }
+
+    pub fn diff_snapshot(&self, paper_id: &str, snapshot_id: &str) -> AppResult<crate::versions::PaperDiff> {
+        let snapshot = self.get_snapshot(paper_id, snapshot_id)?;
+        let current = self.get_paper(paper_id)?;
+        crate::versions::diff(&snapshot, &current)
+    }
+
+    pub fn restore_snapshot(&self, paper_id: &str, snapshot_id: &str) -> AppResult<Paper> {
+        let restored = {
+            let guard = self.read()?;
+            let snapshot = guard.snapshots.iter()
+                .find(|s| s.paper_id == paper_id && s.id == snapshot_id)
+                .ok_or_else(|| AppError::NotFound(format!("snapshot '{snapshot_id}'")))?;
+            let current = guard.find_paper(paper_id)
+                .ok_or_else(|| AppError::NotFound(format!("paper '{paper_id}'")))?;
+            crate::versions::restore(snapshot, current)?
+        };
+        {
+            let mut guard = self.write()?;
+            match guard.papers.iter().position(|p| p.id == paper_id) {
+                Some(i) => guard.papers[i] = restored.clone(),
+                None => return Err(AppError::NotFound(format!("paper '{paper_id}'"))),
+            }
+        }
+        self.rebuild_graph()?;
+        self.flush()?;
+        Ok(restored)
+    }
+
+    pub fn delete_snapshot(&self, paper_id: &str, snapshot_id: &str) -> AppResult<()> {
+        {
+            let mut guard = self.write()?;
+            let before = guard.snapshots.len();
+            guard.snapshots.retain(|s| !(s.paper_id == paper_id && s.id == snapshot_id));
+            if guard.snapshots.len() == before {
+                return Err(AppError::NotFound(format!("snapshot '{snapshot_id}'")));
+            }
+        }
+        self.flush()
+    }
+
     pub fn backfill_provenance(&self) -> AppResult<usize> {
         let added = {
             let mut store = self.write()?;

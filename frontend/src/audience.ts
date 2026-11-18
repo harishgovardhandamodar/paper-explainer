@@ -104,6 +104,7 @@ const PLAIN_LABELS: Record<string, string> = {
   Provenance: 'Where this came from',
   Corrections: 'Fix an explanation',
   Guardrails: 'Check the AI claims',
+  'Version history': 'Undo a bad refresh',
   'Reading queue': 'What to read next',
   'Synthesis': 'Bring the papers together',
   'Conflicts across papers': 'Where the evidence disagrees',

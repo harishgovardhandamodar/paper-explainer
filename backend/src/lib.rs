@@ -22,6 +22,7 @@ pub mod store;
 pub mod synthesis;
 pub mod tracker;
 pub mod util;
+pub mod versions;
 
 use axum::routing::{delete, get, post, put};
 use axum::Router;
@@ -77,6 +78,10 @@ pub fn build_router(state: api::ApiState, dist: &Path) -> Router {
         .route("/api/papers/{id}/insights/{key}/verify", post(api::verify_insight))
         .route("/api/papers/{id}/insights/{key}/verification", put(api::set_insight_verification))
         .route("/api/papers/{id}/insights/{key}/section", put(api::set_insight_section))
+        .route("/api/papers/{id}/snapshots", get(api::list_snapshots).post(api::create_snapshot))
+        .route("/api/papers/{id}/snapshots/{snapshot_id}", get(api::get_snapshot).delete(api::delete_snapshot))
+        .route("/api/papers/{id}/snapshots/{snapshot_id}/diff", get(api::diff_snapshot))
+        .route("/api/papers/{id}/snapshots/{snapshot_id}/restore", post(api::restore_snapshot))
         .route("/api/graph", get(api::get_graph))
         .route("/api/graph/mermaid", get(api::get_graph_mermaid))
         .route("/api/graph/edges", post(api::add_edge))

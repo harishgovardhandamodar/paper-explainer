@@ -13,6 +13,7 @@ import { ExportView } from './components/ExportView';
 import { FollowUpsView } from './components/FollowUpsView';
 import { GlossaryView } from './components/GlossaryView';
 import { GuardrailsView } from './components/GuardrailsView';
+import { VersionHistoryView } from './components/VersionHistoryView';
 import { HypothesisTrackerView } from './components/HypothesisTrackerView';
 import { LimitsView } from './components/LimitsView';
 import { MatrixView } from './components/MatrixView';
@@ -33,7 +34,7 @@ import {
   LibraryView, OverviewView, WorkflowsView, type ViewKey,
 } from './views';
 
-const GLOBAL_VIEWS: ViewKey[] = ['library', 'design', 'ai', 'compare', 'export', 'tracker', 'synthesis', 'triage', 'citations', 'glossary', 'projects', 'provenance', 'corrections', 'guardrails'];
+const GLOBAL_VIEWS: ViewKey[] = ['library', 'design', 'ai', 'compare', 'export', 'tracker', 'synthesis', 'triage', 'citations', 'glossary', 'projects', 'provenance', 'corrections', 'guardrails', 'versions'];
 
 const NAV: { key: ViewKey; label: string; icon: string }[] = [
   { key: 'overview', label: 'Overview', icon: '⌂' },
@@ -54,6 +55,7 @@ const NAV: { key: ViewKey; label: string; icon: string }[] = [
   { key: 'provenance', label: 'Provenance', icon: '◈' },
   { key: 'corrections', label: 'Corrections', icon: '✎' },
   { key: 'guardrails', label: 'AI guardrails', icon: '⚑' },
+  { key: 'versions', label: 'Version history', icon: '◷' },
   { key: 'hypotheses', label: 'Hypotheses', icon: '◎' },
   { key: 'experiments', label: 'Experiments', icon: '⚗' },
   { key: 'diagrams', label: 'Diagrams', icon: '◇' },
@@ -285,7 +287,7 @@ export default function App() {
 
       <main className="main">
         <header className="topbar">
-          <div className="crumb">Collection <span className="faint">/</span> <strong>{view === 'design' ? 'Help & Design' : view === 'ai' ? 'AI insights' : view === 'library' ? 'Library' : view === 'triage' ? 'Triage inbox' : view === 'citations' ? 'Citation graph' : view === 'glossary' ? 'Glossary' : view === 'projects' ? 'Projects' : view === 'provenance' ? 'Provenance' : view === 'corrections' ? 'Corrections' : view === 'guardrails' ? 'AI guardrails' : view === 'tracker' ? 'Hypothesis tracker' : view === 'synthesis' ? 'Synthesis builder' : paper ? (paper.title.length > 46 ? `${paper.title.slice(0, 46)}…` : paper.title) : 'Library'}</strong></div>
+          <div className="crumb">Collection <span className="faint">/</span> <strong>{view === 'design' ? 'Help & Design' : view === 'ai' ? 'AI insights' : view === 'library' ? 'Library' : view === 'triage' ? 'Triage inbox' : view === 'citations' ? 'Citation graph' : view === 'glossary' ? 'Glossary' : view === 'projects' ? 'Projects' : view === 'provenance' ? 'Provenance' : view === 'corrections' ? 'Corrections' : view === 'guardrails' ? 'AI guardrails' : view === 'versions' ? 'Version history' : view === 'tracker' ? 'Hypothesis tracker' : view === 'synthesis' ? 'Synthesis builder' : paper ? (paper.title.length > 46 ? `${paper.title.slice(0, 46)}…` : paper.title) : 'Library'}</strong></div>
           <AudienceSwitch />
           <div className="search-wrap">
             <span className="search-icon">⌕</span>
@@ -304,9 +306,10 @@ export default function App() {
               </div>
             )}
           </div>
-          {paper && view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && view !== 'tracker' && view !== 'synthesis' && view !== 'triage' && view !== 'citations' && view !== 'glossary' && view !== 'projects' && view !== 'provenance' && view !== 'corrections' && view !== 'guardrails' && <>
+          {paper && view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && view !== 'tracker' && view !== 'synthesis' && view !== 'triage' && view !== 'citations' && view !== 'glossary' && view !== 'projects' && view !== 'provenance' && view !== 'corrections' && view !== 'guardrails' && view !== 'versions' && <>
             <a className="btn sm" href={api.exportUrl(paper.id)} target="_blank" rel="noreferrer">Export MD</a>
             <button className="btn sm" onClick={handleRefresh} title="Re-import from source">↻</button>
+            <button className="btn sm" onClick={() => navigate('versions')} title="Version history (refresh/AI changes are snapshotted)">◷ History</button>
           </>}
           <button
             className="btn sm ghost theme-toggle"
@@ -364,9 +367,14 @@ export default function App() {
             <GuardrailsView papers={papers} activePaperId={paper?.id ?? null}
               onNavigateAi={() => navigate('ai')} onNotify={notify} />
           )}
+          {view === 'versions' && (
+            <VersionHistoryView papers={papers} activePaperId={paper?.id ?? null}
+              onPaperRestored={(id) => { void api.getPaper(id).then(setPaper).catch(() => {}); void loadMeta(); }}
+              onNotify={notify} />
+          )}
           {view === 'export' && paper && <ExportView paper={paper} onNotify={notify} />}
           {view === 'export' && !paper && <div className="empty"><div className="empty-icon">◌</div><strong>No paper selected</strong></div>}
-          {view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && view !== 'tracker' && view !== 'synthesis' && view !== 'triage' && view !== 'citations' && view !== 'glossary' && view !== 'projects' && view !== 'provenance' && view !== 'corrections' && view !== 'guardrails' && paper && stats && (
+          {view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && view !== 'tracker' && view !== 'synthesis' && view !== 'triage' && view !== 'citations' && view !== 'glossary' && view !== 'projects' && view !== 'provenance' && view !== 'corrections' && view !== 'guardrails' && view !== 'versions' && paper && stats && (
             <>
               {view === 'overview' && <OverviewView paper={paper} stats={stats} onNavigate={setView} />}
               {view === 'read' && <ReadView paper={paper} onNavigate={setView} />}
@@ -385,7 +393,7 @@ export default function App() {
               {view === 'graph' && <GraphView graph={graph} activePaperId={paper.id} onAddEdge={addEdge} />}
             </>
           )}
-          {view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && view !== 'tracker' && view !== 'synthesis' && view !== 'triage' && view !== 'citations' && view !== 'glossary' && view !== 'projects' && view !== 'provenance' && view !== 'corrections' && view !== 'guardrails' && !paper && (
+          {view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && view !== 'tracker' && view !== 'synthesis' && view !== 'triage' && view !== 'citations' && view !== 'glossary' && view !== 'projects' && view !== 'provenance' && view !== 'corrections' && view !== 'guardrails' && view !== 'versions' && !paper && (
             <div className="empty"><div className="empty-icon">◌</div><strong>No paper selected</strong>
               <div style={{ marginTop: 10 }}><button className="btn primary" onClick={() => setDialog(true)}>Add your first paper</button></div>
             </div>

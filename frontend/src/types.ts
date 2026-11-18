@@ -690,3 +690,39 @@ export interface EditableItem {
   /** field name -> current value */
   current: Record<string, string>;
 }
+
+// -- Version history & safe re-import ----------------------------------------
+
+export type SnapshotReason = 'refresh' | 'enhance' | 'clear_enhance' | 'manual';
+
+export interface PaperSnapshot {
+  id: string;
+  paper_id: string;
+  paper_title: string;
+  label: string;
+  reason: SnapshotReason;
+  created_at: string;
+  /** Full serialised paper; not rendered directly, only used by the backend. */
+  paper: unknown;
+}
+
+export type ChangeKind = 'added' | 'removed' | 'changed';
+
+export interface FieldChange {
+  path: string;
+  kind: ChangeKind;
+  before: unknown;
+  after: unknown;
+}
+
+export interface PaperDiff {
+  paper_id: string;
+  snapshot_id: string;
+  snapshot_label: string;
+  snapshot_title: string;
+  current_title: string;
+  changes: FieldChange[];
+  total: number;
+  truncated: boolean;
+  manual_edits_preserved: number;
+}

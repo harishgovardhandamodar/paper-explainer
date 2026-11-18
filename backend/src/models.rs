@@ -27,6 +27,56 @@ pub struct Store {
     pub reading_states: Vec<ReadingState>,
     /// Named literature-review workspaces with their own notes and tasks.
     pub projects: Vec<Project>,
+    /// Point-in-time copies of papers taken before risky operations, so a
+    /// refresh or AI regeneration can be reviewed field-by-field and undone.
+    pub snapshots: Vec<PaperSnapshot>,
+}
+
+/// What triggered a snapshot. Kept as a simple enum so the UI can explain why
+/// a version exists without storing free text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SnapshotReason {
+    Refresh,
+    Enhance,
+    ClearEnhance,
+    Manual,
+}
+
+impl SnapshotReason {
+    pub fn label(&self) -> &'static str {
+        match self {
+            Self::Refresh => "Before refresh",
+            Self::Enhance => "Before AI enhancement",
+            Self::ClearEnhance => "Before clearing AI",
+            Self::Manual => "Manual snapshot",
+        }
+    }
+}
+
+/// A full copy of a paper captured before an operation that may overwrite it.
+/// The paper is stored as JSON so a new field needs no snapshot schema change;
+/// diffs walk that JSON generically.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct PaperSnapshot {
+    pub id: String,
+    pub paper_id: String,
+    pub paper_title: String,
+    pub label: String,
+    pub reason: SnapshotReason,
+    pub created_at: DateTime<Utc>,
+    pub paper: serde_json::Value,
+}
+
+impl Default for PaperSnapshot {
+    fn default() -> Self {
+        Self {
+            id: String::new(), paper_id: String::new(), paper_title: String::new(),
+            label: String::new(), reason: SnapshotReason::Manual,
+            created_at: Utc::now(), paper: serde_json::Value::Null,
+        }
+    }
 }
 
 impl Store {
@@ -35,6 +85,7 @@ impl Store {
             version: 1, papers: Vec::new(), graph: KnowledgeGraph::default(),
             custom_edges: Vec::new(), annotations: Vec::new(), follow_ups: Vec::new(),
             syntheses: Vec::new(), reading_states: Vec::new(), projects: Vec::new(),
+            snapshots: Vec::new(),
         }
     }
 

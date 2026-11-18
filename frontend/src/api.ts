@@ -4,9 +4,9 @@ import type {
   FollowUp, GlossaryEntry, GraphEdge, GuardrailReport, Health, HypothesisTracker, IngestRequest,
   InsightAnchor, InsightVerification, KnowledgeGraph,
   LibraryQuery, LibraryResponse, LlmStatus, OpenQuestion, Paper, PaperReference, PaperSummary, Project,
-  ProjectFollowUp, ProjectReadout, Provenance, ProvenanceReport, QualityReport, ReadingState,
-  ResolveResponse, SearchResult, Stats, Synthesis, UpdateProject, UpdateProjectFollowUp,
-  UpdateProvenance, UpdateReadingState, UpdateSynthesis,
+  PaperDiff, PaperSnapshot, ProjectFollowUp, ProjectReadout, Provenance, ProvenanceReport,
+  QualityReport, ReadingState, ResolveResponse, SearchResult, Stats, Synthesis,
+  UpdateProject, UpdateProjectFollowUp, UpdateProvenance, UpdateReadingState, UpdateSynthesis,
 } from './types';
 
 const BASE = '/api';
@@ -138,6 +138,19 @@ export const api = {
       { method: 'PUT', body: JSON.stringify({ section }) }),
   rebuildInsightAnchors: (id: string) =>
     request<{ changed: number }>(`/papers/${encodeURIComponent(id)}/insights/rebuild`, { method: 'POST' }),
+  snapshots: (id: string) =>
+    request<PaperSnapshot[]>(`/papers/${encodeURIComponent(id)}/snapshots`),
+  createSnapshot: (id: string, label?: string) =>
+    request<PaperSnapshot>(`/papers/${encodeURIComponent(id)}/snapshots`,
+      { method: 'POST', body: JSON.stringify({ label: label || null }) }),
+  snapshotDiff: (id: string, snapshotId: string) =>
+    request<PaperDiff>(`/papers/${encodeURIComponent(id)}/snapshots/${encodeURIComponent(snapshotId)}/diff`),
+  restoreSnapshot: (id: string, snapshotId: string) =>
+    request<Paper>(`/papers/${encodeURIComponent(id)}/snapshots/${encodeURIComponent(snapshotId)}/restore`,
+      { method: 'POST' }),
+  deleteSnapshot: (id: string, snapshotId: string) =>
+    request<void>(`/papers/${encodeURIComponent(id)}/snapshots/${encodeURIComponent(snapshotId)}`,
+      { method: 'DELETE' }),
   annotations: (paperId?: string) =>
     request<Annotation[]>(`/annotations${paperId ? `?paper_id=${encodeURIComponent(paperId)}` : ''}`),
   addAnnotation: (body: CreateAnnotation) =>

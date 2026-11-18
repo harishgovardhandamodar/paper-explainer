@@ -197,6 +197,15 @@ pub async fn delete_paper(
 pub async fn refresh(
     State(state): State<ApiState>, Path(id): Path<String>,
 ) -> ApiResult<Json<Paper>> {
+    // Only snapshot papers that can actually be refreshed, so a pasted or
+    // uploaded paper does not accumulate pointless versions.
+    {
+        let existing = state.store.get_paper(&id)?;
+        if existing.url.is_empty() || existing.url.starts_with("pasted://") || existing.url.starts_with("pdf://") {
+            return Err(AppError::BadRequest("pasted and uploaded papers cannot be refreshed from a URL".into()));
+        }
+    }
+    state.store.create_snapshot(&id, SnapshotReason::Refresh, None)?;
     Ok(Json(refresh_paper(&id, &state.store).await?))
 }
 
@@ -212,6 +221,9 @@ pub async fn enhance_paper(
 ) -> ApiResult<Json<Paper>> {
     let paper = state.store.get_paper(&id)?;
     let enhancement = state.llm.enhance(&paper).await?;
+    // Capture the pre-enhancement state only once generation succeeded, so a
+    // failed model call does not leave a meaningless snapshot behind.
+    state.store.create_snapshot(&id, SnapshotReason::Enhance, None)?;
     let updated = {
         let mut store = state.store.write()?;
         let p = store.find_paper_mut(&id)
@@ -232,6 +244,7 @@ pub async fn enhance_paper(
 pub async fn clear_enhancement(
     State(state): State<ApiState>, Path(id): Path<String>,
 ) -> ApiResult<Json<Paper>> {
+    state.store.create_snapshot(&id, SnapshotReason::ClearEnhance, None)?;
     let updated = {
         let mut store = state.store.write()?;
         let p = store.find_paper_mut(&id)
@@ -689,6 +702,59 @@ pub async fn rebuild_insight_anchors(
 ) -> ApiResult<Json<serde_json::Value>> {
     let changed = state.store.rebuild_insight_anchors(&id)?;
     Ok(Json(json!({ "changed": changed })))
+}
+
+// -- Version history ----------------------------------------------------------
+
+#[derive(Debug, Deserialize, Default)]
+pub struct SnapshotRequest {
+    #[serde(default)]
+    pub label: Option<String>,
+}
+
+/// List a paper's snapshots, newest first.
+pub async fn list_snapshots(
+    State(state): State<ApiState>, Path(id): Path<String>,
+) -> ApiResult<Json<Vec<PaperSnapshot>>> {
+    Ok(Json(state.store.list_snapshots(&id)?))
+}
+
+/// Take a manual snapshot of a paper's current state.
+pub async fn create_snapshot(
+    State(state): State<ApiState>, Path(id): Path<String>,
+    body: Option<Json<SnapshotRequest>>,
+) -> ApiResult<Json<PaperSnapshot>> {
+    let label = body.and_then(|Json(b)| b.label);
+    Ok(Json(state.store.create_snapshot(&id, SnapshotReason::Manual, label)?))
+}
+
+/// Get one snapshot.
+pub async fn get_snapshot(
+    State(state): State<ApiState>, Path((id, snapshot_id)): Path<(String, String)>,
+) -> ApiResult<Json<PaperSnapshot>> {
+    Ok(Json(state.store.get_snapshot(&id, &snapshot_id)?))
+}
+
+/// Field-level diff between a snapshot and the paper's current state.
+pub async fn diff_snapshot(
+    State(state): State<ApiState>, Path((id, snapshot_id)): Path<(String, String)>,
+) -> ApiResult<Json<crate::versions::PaperDiff>> {
+    Ok(Json(state.store.diff_snapshot(&id, &snapshot_id)?))
+}
+
+/// Restore a snapshot's content, preserving manual edits.
+pub async fn restore_snapshot(
+    State(state): State<ApiState>, Path((id, snapshot_id)): Path<(String, String)>,
+) -> ApiResult<Json<Paper>> {
+    Ok(Json(state.store.restore_snapshot(&id, &snapshot_id)?))
+}
+
+/// Delete a snapshot.
+pub async fn delete_snapshot(
+    State(state): State<ApiState>, Path((id, snapshot_id)): Path<(String, String)>,
+) -> ApiResult<StatusCode> {
+    state.store.delete_snapshot(&id, &snapshot_id)?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 pub async fn reset(State(state): State<ApiState>) -> ApiResult<StatusCode> {
