@@ -85,8 +85,10 @@ export function useAudience(): Audience {
 const PLAIN_LABELS: Record<string, string> = {
   Overview: 'Start here',
   'Read paper': 'Read the story',
+  'Source evidence': 'Source text',
   Hypotheses: 'What they expected',
   'Claims under test': 'What they expected',
+  'Evidence panel': 'Where it says that',
   'What was claimed': 'What they expected',
   Experiments: 'How they tested it',
   Findings: 'What they found',
