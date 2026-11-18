@@ -27,7 +27,7 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 - [x] **12. Follow-up board** (M) — Tasks/questions attached to claims with status, priority and notes.
 - [x] **13. Auto-extracted open questions** (S–M) — Mine limitations/future-work into reviewable follow-up candidates.
 - [x] **14. Hypothesis tracker across papers** (M) — Aggregate hypothesis status across the corpus into a supported/contested/open timeline with counter-evidence.
-- [ ] **15. Cross-paper synthesis builder** (L) — Select N papers → stored synthesis: related-work narrative, comparison table, combined diagram.
+- [x] **15. Cross-paper synthesis builder** (L) — Select N papers → stored synthesis: related-work narrative, comparison table, combined diagram.
 - [ ] **16. Reading progress & triage inbox** (S–M) — Unread/in-progress/done, last position, priority and "why read"; new Library facets.
 
 ## Knowledge base & scale
@@ -66,3 +66,4 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 | 12 | Follow-up board | `e52a2f2` | New persisted `FollowUp` model and CRUD API; three-column open/in-progress/done board with priority, anchors, notes, tags, claim-derived suggestions and JSON/Markdown export |
 | 13 | Open questions | `4b361e5` | New deterministic `questions` extractor + `OpenQuestion` model and `GET /api/papers/{id}/open-questions`; mines limitation/future-work/discussion/conclusion sections, caveats, unresolved claims and notes with cue/confidence/source; review UI with editable suggestions, filters, selection and promote-to-followup |
 | 14 | Hypothesis tracker | `5a39b8a` | New `tracker` module + `GET /api/hypothesis-tracker`; token-overlap clustering across papers into supported/contested/rejected/open themes with status-minibars, cross-paper tension, finding-level counter-evidence and a flat chronological timeline; global view with paper deep-links |
+| 15 | Synthesis builder | `d3e1447` | New persisted `Synthesis` model + store CRUD/refresh and 6 endpoints; deterministic `synthesis` generator produces related-work narrative, 11-row comparison matrix and shared-theme Mermaid diagram; builder UI with paper picker, preview, editable notes, saved list, regenerate and Markdown export |
