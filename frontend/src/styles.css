@@ -231,7 +231,9 @@ a:hover { text-decoration: underline; }
 .search-result .sr-snippet { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
 
 .content { flex: 1; overflow-y: auto; padding: 30px 34px 70px; }
-.content-inner { max-width: 1180px; margin: 0 auto; }
+/* Use the full width of the main pane; individual long-form blocks keep their
+   own readable measure so text does not stretch across ultra-wide screens. */
+.content-inner { width: 100%; }
 
 /* ---------- Common UI ---------- */
 .page-head { margin-bottom: 26px; }
@@ -294,7 +296,7 @@ a:hover { text-decoration: underline; }
   border-radius: var(--radius); padding: 20px 22px;
 }
 .callout h3 { margin: 0 0 10px; font-family: var(--font-serif); font-size: 18px; color: var(--accent-strong); }
-.prose { white-space: pre-wrap; font-size: 13.5px; line-height: 1.75; color: var(--prose-text); }
+.prose { white-space: pre-wrap; font-size: 13.5px; line-height: 1.75; color: var(--prose-text); max-width: 900px; }
 .prose p { margin: 0 0 12px; }
 
 .empty { text-align: center; padding: 60px 20px; color: var(--text-muted); }
