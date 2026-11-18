@@ -596,3 +596,64 @@ export interface UpdateProvenance {
   note?: string;
   verified?: boolean;
 }
+
+// -- Corrections & extraction quality ----------------------------------------
+
+export interface FieldCorrection {
+  id: string;
+  paper_id: string;
+  item_key: string;
+  field: string;
+  original: string;
+  corrected: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateCorrection {
+  item_key: string;
+  field: string;
+  corrected: string;
+}
+
+export interface CorrectionView extends FieldCorrection {
+  paper_title: string;
+  item_type: string;
+  rule: string;
+}
+
+export interface RuleQuality {
+  rule: string;
+  items: number;
+  corrections: number;
+  verified: number;
+  low_confidence: number;
+  average_confidence: number;
+  correction_rate: number;
+}
+
+export interface QualityReport {
+  items: number;
+  corrections: number;
+  verified: number;
+  low_confidence: number;
+  average_confidence: number;
+  rules: RuleQuality[];
+  recent: CorrectionView[];
+}
+
+export interface EditableField {
+  name: string;
+  label: string;
+}
+
+export interface EditableItem {
+  key: string;
+  label: string;
+  item_type: string;
+  badge: ProvenanceKind;
+  verified: boolean;
+  fields: EditableField[];
+  /** field name -> current value */
+  current: Record<string, string>;
+}

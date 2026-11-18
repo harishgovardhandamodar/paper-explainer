@@ -92,6 +92,44 @@ pub struct Paper {
     /// `summary` and `enhancement:<field>[:<index>]`.
     #[serde(default)]
     pub item_provenance: std::collections::HashMap<String, Provenance>,
+    /// Human corrections to extracted fields. Re-applied after re-import so a
+    /// refresh never silently restores a value the reader already fixed.
+    #[serde(default)]
+    pub corrections: Vec<FieldCorrection>,
+}
+
+/// A human edit to one extracted text field, kept as an audit record.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct FieldCorrection {
+    pub id: String,
+    pub paper_id: String,
+    /// Item id, or a special key such as `summary`.
+    pub item_key: String,
+    pub field: String,
+    pub original: String,
+    pub corrected: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl Default for FieldCorrection {
+    fn default() -> Self {
+        let now = Utc::now();
+        Self {
+            id: String::new(), paper_id: String::new(), item_key: String::new(),
+            field: String::new(), original: String::new(), corrected: String::new(),
+            created_at: now, updated_at: now,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct CreateCorrection {
+    pub item_key: String,
+    pub field: String,
+    pub corrected: String,
 }
 
 // ---------------------------------------------------------------------------
@@ -236,6 +274,7 @@ impl Default for Paper {
             findings: Vec::new(), diagrams: Vec::new(), workflows: Vec::new(),
             concepts: Vec::new(), sections: Vec::new(), references: Vec::new(), notes: Vec::new(),
             enhancement: None, item_provenance: std::collections::HashMap::new(),
+            corrections: Vec::new(),
         }
     }
 }

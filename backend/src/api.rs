@@ -597,6 +597,45 @@ pub async fn backfill_provenance(State(state): State<ApiState>) -> ApiResult<Jso
     Ok(Json(json!({ "added": added })))
 }
 
+// -- Corrections & extraction quality ----------------------------------------
+
+/// Optional paper filter for correction listings.
+#[derive(Debug, Default, Deserialize)]
+pub struct CorrectionQuery {
+    pub paper_id: Option<String>,
+}
+
+/// Editable items and fields for one paper (from the backend whitelist).
+pub async fn editable_items(
+    State(state): State<ApiState>, Path(id): Path<String>,
+) -> ApiResult<Json<Vec<crate::corrections::EditableItem>>> {
+    Ok(Json(state.store.editable_items(&id)?))
+}
+
+pub async fn corrections(
+    State(state): State<ApiState>, Query(params): Query<CorrectionQuery>,
+) -> ApiResult<Json<Vec<crate::corrections::CorrectionView>>> {
+    Ok(Json(state.store.corrections(params.paper_id.as_deref())?))
+}
+
+pub async fn apply_correction(
+    State(state): State<ApiState>, Path(id): Path<String>, Json(req): Json<CreateCorrection>,
+) -> ApiResult<Json<FieldCorrection>> {
+    Ok(Json(state.store.apply_correction(&id, req)?))
+}
+
+pub async fn revert_correction(
+    State(state): State<ApiState>, Path((id, correction_id)): Path<(String, String)>,
+) -> ApiResult<StatusCode> {
+    state.store.revert_correction(&id, &correction_id)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Dashboard joining extraction rules to human corrections and confidence.
+pub async fn quality(State(state): State<ApiState>) -> ApiResult<Json<crate::corrections::QualityReport>> {
+    Ok(Json(state.store.quality_report()?))
+}
+
 pub async fn reset(State(state): State<ApiState>) -> ApiResult<StatusCode> {
     state.store.reset()?;
     Ok(StatusCode::NO_CONTENT)

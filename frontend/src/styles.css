@@ -699,6 +699,32 @@ a:hover { text-decoration: underline; }
 .pv-verify { display: flex; align-items: center; gap: 6px; cursor: pointer; }
 .pv-verify .badge { font-size: 10px; }
 
+/* ---------- Corrections & extraction quality ---------- */
+.section-title { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; font-weight: 800; color: var(--text-faint); margin: 20px 2px 9px; }
+.qr-table td { vertical-align: middle; }
+.qr-rate { display: flex; align-items: center; gap: 7px; min-width: 96px; }
+.qr-rate-bar { flex: 1; height: 6px; border-radius: 3px; background: var(--bg-subtle); overflow: hidden; }
+.qr-rate-bar span { display: block; height: 100%; border-radius: 3px; background: var(--amber); }
+.qr-note { margin: 7px 2px 0; line-height: 1.5; }
+.corr-editor { padding: 16px 18px; }
+.corr-controls { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.corr-controls label { display: flex; flex-direction: column; gap: 4px; min-width: 180px; flex: 1; }
+.corr-controls select { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 12px; max-width: 100%; }
+.corr-item { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+.corr-item-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.corr-item-label { font-family: var(--font-serif); font-size: 16px; font-weight: 600; line-height: 1.4; }
+.corr-fields { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+.corr-field { display: flex; flex-direction: column; gap: 6px; }
+.corr-field-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.corr-field-head label { font-size: 12px; font-weight: 700; color: var(--text); }
+.corr-dirty { font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; color: var(--amber); }
+.corr-field textarea { width: 100%; resize: vertical; padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 12.5px; line-height: 1.55; }
+.corr-field textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.corr-field-meta { line-height: 1.5; }
+.corr-diff { max-width: 340px; }
+.corr-before { color: var(--text-faint); text-decoration: line-through; font-size: 11px; line-height: 1.45; }
+.corr-after { color: var(--green); font-size: 11px; line-height: 1.45; margin-top: 3px; }
+
 /* ---------- Reading triage ---------- */
 .facet-subhead { font-size: 10px; text-transform: uppercase; letter-spacing: .09em; font-weight: 700; color: var(--text-faint); padding: 10px 2px 2px; border-top: 1px solid var(--border); margin-top: 8px; }
 .triage-stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }

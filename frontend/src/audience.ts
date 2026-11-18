@@ -102,6 +102,7 @@ const PLAIN_LABELS: Record<string, string> = {
   Glossary: 'Plain-language terms',
   Projects: 'Reading projects',
   Provenance: 'Where this came from',
+  Corrections: 'Fix an explanation',
   'Reading queue': 'What to read next',
   'Synthesis': 'Bring the papers together',
   'Conflicts across papers': 'Where the evidence disagrees',

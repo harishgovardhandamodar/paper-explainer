@@ -1,6 +1,7 @@
 pub mod api;
 pub mod categories;
 pub mod citations;
+pub mod corrections;
 pub mod error;
 pub mod explain;
 pub mod exports;
@@ -21,7 +22,7 @@ pub mod synthesis;
 pub mod tracker;
 pub mod util;
 
-use axum::routing::{get, post, put};
+use axum::routing::{delete, get, post, put};
 use axum::Router;
 use std::path::Path;
 use tower_http::cors::{Any, CorsLayer};
@@ -65,6 +66,11 @@ pub fn build_router(state: api::ApiState, dist: &Path) -> Router {
         .route("/api/provenance", get(api::provenance))
         .route("/api/provenance/backfill", post(api::backfill_provenance))
         .route("/api/provenance/papers/{paper_id}/items/{key}", put(api::update_provenance))
+        .route("/api/quality", get(api::quality))
+        .route("/api/corrections", get(api::corrections))
+        .route("/api/papers/{id}/editable", get(api::editable_items))
+        .route("/api/papers/{id}/corrections", post(api::apply_correction))
+        .route("/api/papers/{id}/corrections/{correction_id}", delete(api::revert_correction))
         .route("/api/graph", get(api::get_graph))
         .route("/api/graph/mermaid", get(api::get_graph_mermaid))
         .route("/api/graph/edges", post(api::add_edge))

@@ -180,6 +180,7 @@ pub async fn ingest_paper(req: IngestRequest, store: &StoreHandle) -> AppResult<
         notes: extraction.notes,
         enhancement: None,
         item_provenance: std::collections::HashMap::new(),
+        corrections: Vec::new(),
     };
     let (categories, primary) = categorize(&paper);
     paper.categories = categories;

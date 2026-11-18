@@ -177,20 +177,29 @@ impl StoreHandle {
     }
 
     pub fn upsert_paper(&self, mut paper: Paper) -> AppResult<Paper> {
-        // A re-import replaces extracted fields, but human provenance edits
-        // (verification, badges, notes, confidence) must survive.
-        let carried = {
+        // A re-import replaces extracted fields, but human corrections and
+        // provenance edits (verification, badges, notes, confidence) survive:
+        // corrections are carried over and re-applied to the new extraction.
+        let (carried_prov, carried_corrections) = {
             let guard = self.read()?;
-            guard.find_paper(&paper.id).map(|old|
-                old.item_provenance.iter()
-                    .filter(|(_, p)| p.overridden)
-                    .map(|(k, p)| (k.clone(), p.clone()))
-                    .collect::<Vec<_>>())
-                .unwrap_or_default()
+            match guard.find_paper(&paper.id) {
+                Some(old) => (
+                    old.item_provenance.iter()
+                        .filter(|(_, p)| p.overridden)
+                        .map(|(k, p)| (k.clone(), p.clone()))
+                        .collect::<Vec<_>>(),
+                    old.corrections.clone(),
+                ),
+                None => (Vec::new(), Vec::new()),
+            }
         };
-        for (key, prov) in carried {
+        for (key, prov) in carried_prov {
             paper.item_provenance.entry(key).or_insert(prov);
         }
+        if paper.corrections.is_empty() {
+            paper.corrections = carried_corrections;
+        }
+        crate::corrections::apply_all(&mut paper);
         crate::provenance::backfill_paper(&mut paper);
         {
             let mut store = self.write()?;
@@ -737,6 +746,75 @@ impl StoreHandle {
         };
         self.flush()?;
         Ok(updated)
+    }
+
+    // -- Corrections & extraction quality ------------------------------------
+
+    pub fn editable_items(&self, paper_id: &str) -> AppResult<Vec<crate::corrections::EditableItem>> {
+        let store = self.read()?;
+        let paper = store.find_paper(paper_id)
+            .ok_or_else(|| AppError::NotFound(format!("paper '{paper_id}'")))?;
+        Ok(crate::corrections::editable_items(paper))
+    }
+
+    pub fn corrections(&self, paper_id: Option<&str>) -> AppResult<Vec<crate::corrections::CorrectionView>> {
+        let store = self.read()?;
+        let mut out = Vec::new();
+        for paper in store.papers.iter().filter(|p| paper_id.map_or(true, |id| p.id == id)) {
+            for c in &paper.corrections {
+                out.push(crate::corrections::CorrectionView {
+                    id: c.id.clone(),
+                    paper_id: paper.id.clone(),
+                    paper_title: paper.title.clone(),
+                    item_key: c.item_key.clone(),
+                    item_type: crate::provenance::item_type(&c.item_key).into(),
+                    field: c.field.clone(),
+                    original: c.original.clone(),
+                    corrected: c.corrected.clone(),
+                    rule: paper.item_provenance.get(&c.item_key)
+                        .map(|p| p.rule.clone()).unwrap_or_default(),
+                    created_at: c.created_at,
+                    updated_at: c.updated_at,
+                });
+            }
+        }
+        out.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+        Ok(out)
+    }
+
+    pub fn apply_correction(&self, paper_id: &str, req: CreateCorrection) -> AppResult<FieldCorrection> {
+        let item_key = req.item_key.trim().to_string();
+        let field = req.field.trim().to_string();
+        if item_key.is_empty() || field.is_empty() {
+            return Err(AppError::BadRequest("item_key and field are required".into()));
+        }
+        let saved = {
+            let mut store = self.write()?;
+            let paper = store.find_paper_mut(paper_id)
+                .ok_or_else(|| AppError::NotFound(format!("paper '{paper_id}'")))?;
+            let saved = crate::corrections::apply_correction(paper, &item_key, &field, &req.corrected)?;
+            paper.updated_at = Utc::now();
+            saved
+        };
+        self.rebuild_graph()?;
+        self.flush()?;
+        Ok(saved)
+    }
+
+    pub fn revert_correction(&self, paper_id: &str, correction_id: &str) -> AppResult<()> {
+        {
+            let mut store = self.write()?;
+            let paper = store.find_paper_mut(paper_id)
+                .ok_or_else(|| AppError::NotFound(format!("paper '{paper_id}'")))?;
+            crate::corrections::revert_correction(paper, correction_id)?;
+            paper.updated_at = Utc::now();
+        }
+        self.rebuild_graph()?;
+        self.flush()
+    }
+
+    pub fn quality_report(&self) -> AppResult<crate::corrections::QualityReport> {
+        Ok(crate::corrections::quality_report(&self.read()?.papers))
     }
 
     pub fn backfill_provenance(&self) -> AppResult<usize> {

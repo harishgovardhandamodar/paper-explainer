@@ -53,6 +53,7 @@ pub fn seed_paper() -> Paper {
         ],
         enhancement: None,
         item_provenance: std::collections::HashMap::new(),
+        corrections: Vec::new(),
     };
     let (categories, primary) = categorize(&paper);
     paper.categories = categories;

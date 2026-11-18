@@ -1,10 +1,11 @@
 import type {
-  Annotation, CategoryDef, CitationEntry, CreateAnnotation, CreateFollowUp, CreateProject,
-  CreateProjectFollowUp, CreateSynthesis, FollowUp, GlossaryEntry, GraphEdge, Health,
-  HypothesisTracker, IngestRequest, KnowledgeGraph, LibraryQuery, LibraryResponse,
-  LlmStatus, OpenQuestion, Paper, PaperReference, PaperSummary, Project, ProjectFollowUp, ProjectReadout,
-  Provenance, ProvenanceReport, ReadingState, ResolveResponse, SearchResult, Stats, Synthesis,
-  UpdateProject, UpdateProjectFollowUp, UpdateProvenance, UpdateReadingState, UpdateSynthesis,
+  Annotation, CategoryDef, CitationEntry, CorrectionView, CreateAnnotation, CreateCorrection,
+  CreateFollowUp, CreateProject, CreateProjectFollowUp, CreateSynthesis, EditableItem, FieldCorrection,
+  FollowUp, GlossaryEntry, GraphEdge, Health, HypothesisTracker, IngestRequest, KnowledgeGraph,
+  LibraryQuery, LibraryResponse, LlmStatus, OpenQuestion, Paper, PaperReference, PaperSummary, Project,
+  ProjectFollowUp, ProjectReadout, Provenance, ProvenanceReport, QualityReport, ReadingState,
+  ResolveResponse, SearchResult, Stats, Synthesis, UpdateProject, UpdateProjectFollowUp,
+  UpdateProvenance, UpdateReadingState, UpdateSynthesis,
 } from './types';
 
 const BASE = '/api';
@@ -105,6 +106,17 @@ export const api = {
       { method: 'PUT', body: JSON.stringify(body) }),
   backfillProvenance: () =>
     request<{ added: number }>('/provenance/backfill', { method: 'POST' }),
+  quality: () => request<QualityReport>('/quality'),
+  corrections: (paperId?: string) =>
+    request<CorrectionView[]>(`/corrections${paperId ? `?paper_id=${encodeURIComponent(paperId)}` : ''}`),
+  editableItems: (paperId: string) =>
+    request<EditableItem[]>(`/papers/${encodeURIComponent(paperId)}/editable`),
+  applyCorrection: (paperId: string, body: CreateCorrection) =>
+    request<FieldCorrection>(`/papers/${encodeURIComponent(paperId)}/corrections`,
+      { method: 'POST', body: JSON.stringify(body) }),
+  revertCorrection: (paperId: string, correctionId: string) =>
+    request<void>(`/papers/${encodeURIComponent(paperId)}/corrections/${encodeURIComponent(correctionId)}`,
+      { method: 'DELETE' }),
   refreshPaper: (id: string) =>
     request<Paper>(`/papers/${encodeURIComponent(id)}/refresh`, { method: 'POST' }),
   llmStatus: () => request<LlmStatus>('/llm/status'),

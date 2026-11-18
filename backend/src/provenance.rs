@@ -246,7 +246,7 @@ fn clip(s: &str, max: usize) -> String {
     format!("{cut}…")
 }
 
-fn label_for(paper: &Paper, key: &str) -> String {
+pub fn label_for(paper: &Paper, key: &str) -> String {
     if key == SUMMARY_KEY { return clip(&paper.summary, 120); }
     if let Some(rest) = key.strip_prefix("enhancement:") {
         if let Some(enh) = &paper.enhancement {
