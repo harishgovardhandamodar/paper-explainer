@@ -344,6 +344,7 @@ a:hover { text-decoration: underline; }
 .diagram-tab { border: 1px solid var(--border); background: var(--bg-elevated); padding: 7px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--text-muted); }
 .diagram-tab.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .mermaid-box { position: relative; background: var(--mermaid-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; overflow: auto; min-height: 260px; max-height: 640px; display: grid; place-items: center; }
+.mermaid-box.bare { border: 0; background: transparent; padding: 0; min-height: 0; max-height: none; overflow: visible; }
 .mermaid-canvas { transform-origin: center center; }
 .mermaid-box svg { display: block; max-width: 100%; height: auto; }
 .mermaid-error { color: var(--rose); font-family: var(--font-mono); font-size: 12px; white-space: pre-wrap; }
@@ -558,6 +559,34 @@ a:hover { text-decoration: underline; }
 .ai-disclaimer { margin-top: 16px; }
 .ai-preview { padding: 16px 20px; align-items: center; }
 .ai-preview-tldr { font-family: var(--font-serif); font-size: 16px; line-height: 1.5; margin-top: 6px; }
+
+/* ---------- Presentation mode ---------- */
+.present-app { display: block; background: var(--bg); }
+.present-shell { position: relative; display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: radial-gradient(circle at 50% 30%, var(--bg-elevated), var(--bg)); }
+.present-topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 22px; border-bottom: 1px solid var(--border); background: var(--bg-elevated); flex: 0 0 auto; }
+.present-doc-title { font-size: 12px; color: var(--text-muted); max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.present-counter { font-size: 12px; color: var(--text-muted); min-width: 54px; text-align: right; }
+.present-progress { height: 3px; background: var(--border); flex: 0 0 auto; }
+.present-progress > div { height: 100%; background: var(--brand-gradient); transition: width .25s ease; }
+.present-stage { flex: 1; display: grid; place-items: center; padding: 40px 6vw; overflow: auto; }
+.present-slide { width: min(1080px, 100%); animation: slide-in .3s ease; }
+@keyframes slide-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.present-slide h1 { font-family: var(--font-serif); font-size: clamp(30px, 4vw, 54px); line-height: 1.12; letter-spacing: -.02em; margin: 0 0 18px; color: var(--text); }
+.present-lead { font-family: var(--font-serif); font-size: clamp(17px, 2vw, 23px); line-height: 1.5; color: var(--prose-text); max-width: 900px; margin: 0 0 26px; }
+.present-bullets { list-style: none; margin: 0; padding: 0; display: grid; gap: 13px; }
+.present-bullets li { position: relative; padding-left: 26px; font-size: clamp(14px, 1.5vw, 18px); line-height: 1.5; color: var(--text); }
+.present-bullets li::before { content: '▸'; position: absolute; left: 2px; color: var(--accent); font-weight: 700; }
+.present-diagram { margin-top: 26px; display: grid; place-items: center; }
+.present-diagram .mermaid-box { width: 100%; }
+.present-diagram .mermaid-box svg { max-height: 54vh; }
+.present-notes { position: absolute; right: 22px; bottom: 76px; z-index: 5; width: 320px; max-width: calc(100vw - 44px); background: var(--bg-elevated); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow-lg); }
+.present-notes-title { font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+.present-notes p { font-size: 13px; line-height: 1.55; color: var(--text); margin: 0 0 10px; }
+.present-bottom { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 22px; border-top: 1px solid var(--border); background: var(--bg-elevated); flex: 0 0 auto; }
+.present-dots { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.present-dots button { width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--border-strong); background: transparent; padding: 0; cursor: pointer; }
+.present-dots button.active { background: var(--accent); border-color: var(--accent); transform: scale(1.25); }
+.present-stage:fullscreen { background: radial-gradient(circle at 50% 30%, var(--bg-elevated), var(--bg)); }
 
 @media (max-width: 1180px) {
   .design-body-row { grid-template-columns: minmax(0, 1fr); }

@@ -8,7 +8,7 @@ import type {
   NodeKind, Paper, PaperSummary, Stats,
 } from './types';
 
-export type ViewKey = 'overview' | 'hypotheses' | 'experiments' | 'diagrams' | 'workflows' | 'findings' | 'graph' | 'library' | 'design' | 'ai';
+export type ViewKey = 'overview' | 'hypotheses' | 'experiments' | 'diagrams' | 'workflows' | 'findings' | 'graph' | 'library' | 'design' | 'ai' | 'present';
 
 /* -------------------------------- Overview -------------------------------- */
 export function OverviewView({ paper, stats, onNavigate }: {

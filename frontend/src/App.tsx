@@ -3,6 +3,7 @@ import { api } from './api';
 import { AddPaperDialog } from './components/AddPaperDialog';
 import { AiView } from './components/AiView';
 import { DesignView } from './components/DesignView';
+import { PresentView } from './components/PresentView';
 import { relativeDate } from './components/ui';
 import { toggleTheme, useTheme } from './theme';
 import type { GraphEdge, KnowledgeGraph, LlmStatus, Paper, PaperSummary, SearchResult, Stats } from './types';
@@ -20,6 +21,7 @@ const NAV: { key: ViewKey; label: string; icon: string }[] = [
   { key: 'findings', label: 'Findings', icon: '✦' },
   { key: 'ai', label: 'AI insights', icon: '✺' },
   { key: 'graph', label: 'Knowledge graph', icon: '⁂' },
+  { key: 'present', label: 'Present', icon: '▷' },
 ];
 
 export default function App() {
@@ -30,6 +32,7 @@ export default function App() {
   const [llmStatus, setLlmStatus] = useState<LlmStatus | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
   const [view, setView] = useState<ViewKey>('overview');
+  const [returnView, setReturnView] = useState<ViewKey>('overview');
   const [dialog, setDialog] = useState(false);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
@@ -43,6 +46,15 @@ export default function App() {
     setToast({ text, error });
     window.setTimeout(() => setToast(null), 4200);
   }, []);
+
+  const navigate = useCallback((next: ViewKey) => {
+    if (next === 'present') {
+      setReturnView((current) => (view === 'present' ? current : view));
+    }
+    setView(next);
+  }, [view]);
+
+  const exitPresent = useCallback(() => setView(returnView), [returnView]);
 
   const loadMeta = useCallback(async () => {
     const [list, g, s] = await Promise.all([api.listPapers(), api.graph(), api.stats()]);
@@ -161,6 +173,14 @@ export default function App() {
 
   if (loading) return <div className="loading"><div className="spinner" />Loading the collection…</div>;
 
+  if (view === 'present' && paper) {
+    return (
+      <div className="app present-app">
+        <PresentView paper={paper} onExit={exitPresent} />
+      </div>
+    );
+  }
+
   const countFor = (key: ViewKey): number | undefined => {
     if (!paper) return undefined;
     switch (key) {
@@ -183,7 +203,7 @@ export default function App() {
         <nav className="nav">
           <div className="nav-label">Explain</div>
           {NAV.map((n) => (
-            <button key={n.key} className={`nav-item ${view === n.key ? 'active' : ''}`} onClick={() => setView(n.key)}>
+            <button key={n.key} className={`nav-item ${view === n.key ? 'active' : ''}`} onClick={() => navigate(n.key)}>
               <span className="icon">{n.icon}</span><span>{n.label}</span>
               {countFor(n.key) !== undefined && <span className="count">{countFor(n.key)}</span>}
             </button>

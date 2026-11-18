@@ -66,7 +66,9 @@ function initializeMermaid(theme: Theme) {
   });
 }
 
-export function MermaidDiagram({ code, showSource = false }: { code: string; showSource?: boolean }) {
+export function MermaidDiagram({ code, showSource = false, bare = false }: {
+  code: string; showSource?: boolean; bare?: boolean;
+}) {
   const rawId = useId().replace(/[^a-zA-Z0-9]/g, '');
   const [svg, setSvg] = useState('');
   const [error, setError] = useState('');
@@ -122,13 +124,13 @@ export function MermaidDiagram({ code, showSource = false }: { code: string; sho
 
   return (
     <div>
-      <div className="mermaid-box" ref={viewportRef}>
+      <div className={`mermaid-box ${bare ? 'bare' : ''}`} ref={viewportRef}>
         {error ? <div className="mermaid-error">Diagram error: {error}</div> :
           <div className="mermaid-canvas" style={{ zoom }}>
             <div dangerouslySetInnerHTML={{ __html: svg }} />
           </div>}
       </div>
-      <div className="mermaid-toolbar">
+      {!bare && <div className="mermaid-toolbar">
         <div className="zoom-controls">
           <button className="btn sm ghost" onClick={() => zoomBy(-0.1)} disabled={zoom <= ZOOM_MIN} title="Zoom out">−</button>
           <span className="zoom-level" title="Ctrl/⌘ + wheel to zoom">{Math.round(zoom * 100)}%</span>
@@ -142,8 +144,8 @@ export function MermaidDiagram({ code, showSource = false }: { code: string; sho
           <button className="btn sm ghost" onClick={() => navigator.clipboard?.writeText(code)}>Copy</button>
           {svg && <button className="btn sm ghost" onClick={download}>Download SVG</button>}
         </div>
-      </div>
-      {openSource && <pre className="mermaid-source">{code}</pre>}
+      </div>}
+      {!bare && openSource && <pre className="mermaid-source">{code}</pre>}
     </div>
   );
 }
