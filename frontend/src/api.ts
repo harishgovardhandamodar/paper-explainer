@@ -1,8 +1,8 @@
 import type {
-  Annotation, CategoryDef, CreateAnnotation, CreateFollowUp, FollowUp, GraphEdge, Health,
+  Annotation, CategoryDef, CitationEntry, CreateAnnotation, CreateFollowUp, FollowUp, GraphEdge, Health,
   CreateSynthesis, HypothesisTracker, IngestRequest, KnowledgeGraph, LibraryQuery, LibraryResponse,
-  LlmStatus, OpenQuestion, Paper, PaperSummary, ReadingState, ResolveResponse, SearchResult, Stats,
-  Synthesis, UpdateReadingState, UpdateSynthesis,
+  LlmStatus, OpenQuestion, Paper, PaperReference, PaperSummary, ReadingState, ResolveResponse,
+  SearchResult, Stats, Synthesis, UpdateReadingState, UpdateSynthesis,
 } from './types';
 
 const BASE = '/api';
@@ -53,6 +53,14 @@ export const api = {
     request<void>(`/papers/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   openQuestions: (id: string) =>
     request<OpenQuestion[]>(`/papers/${encodeURIComponent(id)}/open-questions`),
+  citations: () => request<CitationEntry[]>('/citations'),
+  paperReferences: (id: string) =>
+    request<PaperReference[]>(`/papers/${encodeURIComponent(id)}/references`),
+  enrichReference: (doi: string) =>
+    request<PaperReference>('/citations/enrich', { method: 'POST', body: JSON.stringify({ doi }) }),
+  enrichPaperReference: (paperId: string, refId: string) =>
+    request<PaperReference>(`/papers/${encodeURIComponent(paperId)}/references/${encodeURIComponent(refId)}/enrich`,
+      { method: 'POST' }),
   hypothesisTracker: () => request<HypothesisTracker>('/hypothesis-tracker'),
   syntheses: () => request<Synthesis[]>('/syntheses'),
   synthesis: (id: string) => request<Synthesis>(`/syntheses/${encodeURIComponent(id)}`),

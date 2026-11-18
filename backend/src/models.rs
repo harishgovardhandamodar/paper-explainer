@@ -66,6 +66,8 @@ pub struct Paper {
     pub source: PaperSource,
     /// Canonical arXiv id without a version, e.g. `2609.10117`.
     pub arxiv_id: Option<String>,
+    /// DOI this paper was ingested from, when available.
+    pub doi: Option<String>,
     /// Version suffix from the ingested source, e.g. `v2`.
     pub version: Option<String>,
     pub added_at: DateTime<Utc>,
@@ -77,6 +79,8 @@ pub struct Paper {
     pub workflows: Vec<Workflow>,
     pub concepts: Vec<Concept>,
     pub sections: Vec<PaperSection>,
+    /// Bibliography entries parsed from the paper's references section.
+    pub references: Vec<PaperReference>,
     /// Non-fatal notes produced by the extractor (e.g. "LLM unavailable").
     pub notes: Vec<String>,
     /// Optional AI-written explanation, generated on demand via Ollama.
@@ -130,10 +134,10 @@ impl Default for Paper {
             url: String::new(), venue: None, abstract_text: String::new(), summary: String::new(),
             tags: Vec::new(), categories: Vec::new(), primary_category: String::new(),
             status: PaperStatus::Ready, source: PaperSource::Heuristic,
-            arxiv_id: None, version: None,
+            arxiv_id: None, doi: None, version: None,
             added_at: now, updated_at: now, hypotheses: Vec::new(), experiments: Vec::new(),
             findings: Vec::new(), diagrams: Vec::new(), workflows: Vec::new(),
-            concepts: Vec::new(), sections: Vec::new(), notes: Vec::new(),
+            concepts: Vec::new(), sections: Vec::new(), references: Vec::new(), notes: Vec::new(),
             enhancement: None,
         }
     }
@@ -242,6 +246,35 @@ pub struct PaperSection {
 
 impl Default for PaperSection {
     fn default() -> Self { Self { heading: String::new(), level: 2, paragraphs: Vec::new() } }
+}
+
+/// One bibliography entry parsed from a paper's reference list. Entries can be
+/// resolved to another paper in the collection by canonical arXiv id, DOI or
+/// (as a fallback) normalised title, which drives the citation graph.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct PaperReference {
+    pub id: String,
+    /// The raw bibliography line, kept verbatim for provenance.
+    pub raw: String,
+    pub title: Option<String>,
+    pub authors: Vec<String>,
+    pub year: Option<u32>,
+    pub arxiv_id: Option<String>,
+    pub doi: Option<String>,
+    /// Set when this entry matches a paper already in the collection.
+    pub resolved_paper_id: Option<String>,
+    /// Whether optional Crossref enrichment has been applied to this entry.
+    pub enriched: bool,
+}
+
+impl Default for PaperReference {
+    fn default() -> Self {
+        Self {
+            id: String::new(), raw: String::new(), title: None, authors: Vec::new(),
+            year: None, arxiv_id: None, doi: None, resolved_paper_id: None, enriched: false,
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -464,6 +497,8 @@ pub enum NodeKind {
     Method,
     Dataset,
     Metric,
+    /// External bibliography entry not (yet) in the collection.
+    Reference,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -479,6 +514,10 @@ pub enum EdgeKind {
     Refines,
     Produces,
     RelatedTo,
+    /// Directed citation: source cites target (paper or reference node).
+    Cites,
+    /// Inverse of `Cites`: source is cited by target.
+    CitedBy,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

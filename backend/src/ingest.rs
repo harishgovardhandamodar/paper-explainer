@@ -74,29 +74,37 @@ async fn obtain_document(req: &IngestRequest) -> AppResult<(String, String)> {
 }
 
 /// Decide the stable store id and arXiv metadata for an ingest request.
-fn identify(req: &IngestRequest, url: &str, title: &str) -> (String, Option<String>, Option<String>) {
+fn identify(req: &IngestRequest, url: &str, title: &str)
+    -> (String, Option<String>, Option<String>, Option<String>)
+{
     let candidate = req.doi.as_deref()
         .or(req.url.as_deref())
         .unwrap_or(url);
     let resolved = identifiers::parse(candidate);
+    let doi = req.doi.as_deref().and_then(identifiers::normalize_doi);
 
-    let (id, arxiv_id, version) = match resolved.kind {
+    let (id, arxiv_id, doi, version) = match resolved.kind {
         IdentifierKind::Arxiv => (
             resolved.canonical_id,
             resolved.bare_id,
+            doi,
             resolved.version,
         ),
-        IdentifierKind::Doi => (resolved.canonical_id, None, None),
+        IdentifierKind::Doi => (
+            resolved.canonical_id, None,
+            doi.or_else(|| identifiers::normalize_doi(candidate)),
+            None,
+        ),
         IdentifierKind::Other => {
             let id = if url.contains("arxiv.org") || url.starts_with("2609") {
                 slug_from_url(url)
             } else {
                 make_id("paper", title)
             };
-            (id, None, None)
+            (id, None, doi, None)
         }
     };
-    (id, arxiv_id, version)
+    (id, arxiv_id, doi, version)
 }
 
 pub async fn ingest_paper(req: IngestRequest, store: &StoreHandle) -> AppResult<Paper> {
@@ -108,7 +116,7 @@ pub async fn ingest_paper(req: IngestRequest, store: &StoreHandle) -> AppResult<
         return Err(AppError::Parse("could not determine a paper title".into()));
     }
 
-    let (id, arxiv_id, version) = identify(&req, &url, &title);
+    let (id, arxiv_id, doi, version) = identify(&req, &url, &title);
 
     if !req.overwrite {
         if let Some(existing) = store.read()?.find_paper(&id) {
@@ -157,6 +165,7 @@ pub async fn ingest_paper(req: IngestRequest, store: &StoreHandle) -> AppResult<
         status: if extraction.experiments.is_empty() { PaperStatus::Failed } else { PaperStatus::Ready },
         source,
         arxiv_id,
+        doi,
         version,
         added_at,
         updated_at: Utc::now(),
@@ -167,6 +176,7 @@ pub async fn ingest_paper(req: IngestRequest, store: &StoreHandle) -> AppResult<
         workflows: extraction.workflows,
         concepts: extraction.concepts,
         sections: doc.sections,
+        references: crate::citations::parse_references(&doc.reference_lines, &id),
         notes: extraction.notes,
         enhancement: None,
     };
@@ -197,7 +207,7 @@ mod tests {
 
     #[test]
     fn identify_canonicalises_arxiv_versions() {
-        let (id, arxiv_id, version) = identify(
+        let (id, arxiv_id, _doi, version) = identify(
             &IngestRequest { url: Some("https://arxiv.org/abs/2609.10117v2".into()), ..Default::default() },
             "https://arxiv.org/html/2609.10117",
             "Some title",
@@ -209,7 +219,7 @@ mod tests {
 
     #[test]
     fn identify_falls_back_to_title_slug_for_generic_urls() {
-        let (id, arxiv_id, version) = identify(
+        let (id, arxiv_id, _doi, version) = identify(
             &IngestRequest { url: Some("https://example.com/paper".into()), ..Default::default() },
             "https://example.com/paper",
             "A Great Paper",

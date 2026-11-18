@@ -16,6 +16,8 @@ pub struct ParsedDocument {
     pub keywords: Vec<String>,
     pub published: Option<String>,
     pub sections: Vec<PaperSection>,
+    /// Raw bibliography lines from the references section.
+    pub reference_lines: Vec<String>,
     pub is_html: bool,
 }
 
@@ -125,8 +127,11 @@ fn parse_html(input: &str, raw: &str) -> AppResult<ParsedDocument> {
         sections = heading_sections(&doc);
     }
 
+    let reference_lines = extract_reference_lines_html(&doc);
+
     Ok(ParsedDocument {
-        title: clean(&title), authors, abstract_text, keywords, published, sections, is_html: true,
+        title: clean(&title), authors, abstract_text, keywords, published, sections,
+        reference_lines, is_html: true,
     })
 }
 
@@ -165,9 +170,11 @@ fn parse_plain_text(input: &str, raw: &str) -> ParsedDocument {
         });
     }
 
+    let reference_lines = extract_reference_lines_text(raw);
+
     ParsedDocument {
         title, authors: Vec::new(), abstract_text: String::new(), keywords: Vec::new(),
-        published: None, sections, is_html: false,
+        published: None, sections, reference_lines, is_html: false,
     }
 }
 
@@ -259,6 +266,77 @@ fn ptr_eq(a: &ElementRef<'_>, b: &ElementRef<'_>) -> bool {
 fn select_text(doc: &Html, selector: &str) -> String {
     let sel = match Selector::parse(selector) { Ok(s) => s, Err(_) => return String::new() };
     doc.select(&sel).next().map(|e| clean(&e.text().collect::<String>())).unwrap_or_default()
+}
+
+fn push_unique(lines: &mut Vec<String>, text: String) {
+    if !lines.iter().any(|l| l == &text) { lines.push(text); }
+}
+
+/// Pull raw bibliography entries out of an HTML document. Covers LaTeXML's
+/// `.ltx_bibitem` class, common `references`/`bibliography` containers and a
+/// heading-based fallback for arbitrary HTML.
+fn extract_reference_lines_html(doc: &Html) -> Vec<String> {
+    let mut lines: Vec<String> = Vec::new();
+
+    for sel in [
+        ".ltx_bibitem", ".bibitem", ".ltx_bibliography li",
+        "ol.references li", "ul.references li", "div.references li",
+        "section.references li", "div.bibliography li", "ol.bibliography li",
+    ] {
+        if let Ok(selector) = Selector::parse(sel) {
+            for el in doc.select(&selector) {
+                let t = prose(&el.text().collect::<String>());
+                if t.chars().count() >= 15 { push_unique(&mut lines, t); }
+            }
+        }
+    }
+    if !lines.is_empty() { return lines; }
+
+    // Fallback: find a heading mentioning references/bibliography, then take
+    // the list items or paragraphs that follow it.
+    if let Ok(headings) = Selector::parse("h1, h2, h3, h4, h5") {
+        for h in doc.select(&headings) {
+            let title = clean(&h.text().collect::<String>()).to_lowercase();
+            if !(title.contains("reference") || title.contains("bibliograph")) { continue; }
+            if let Some(section) = h.parent().and_then(ElementRef::wrap) {
+                if section.value().name() == "section" {
+                    if let Ok(items) = Selector::parse("li, p") {
+                        for el in section.select(&items) {
+                            let t = prose(&el.text().collect::<String>());
+                            if t.chars().count() >= 15 { push_unique(&mut lines, t); }
+                        }
+                    }
+                }
+            }
+            if !lines.is_empty() { break; }
+        }
+    }
+    lines
+}
+
+/// Plain-text (often PDF-extracted) reference section: lines after a
+/// "References" / "Bibliography" heading until the next major section.
+fn extract_reference_lines_text(raw: &str) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut in_refs = false;
+    for line in raw.lines() {
+        let t = clean(line);
+        if t.is_empty() { continue; }
+        let lower = t.to_lowercase();
+        if lower == "references" || lower.starts_with("references.") || lower == "bibliography"
+            || lower.starts_with("bibliography.") || lower.ends_with("references") && t.len() < 40 {
+            in_refs = true;
+            continue;
+        }
+        if !in_refs { continue; }
+        // A new top-level heading ends the reference list.
+        if t.len() < 60 && (lower.starts_with("appendix") || lower.starts_with("acknowledg")
+            || lower == "conclusion" || lower.starts_with("table ")) {
+            break;
+        }
+        if t.chars().count() >= 15 { push_unique(&mut lines, t); }
+    }
+    lines
 }
 
 #[allow(dead_code)]

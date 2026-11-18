@@ -11,11 +11,12 @@ export const NODE_COLORS: Record<NodeKind, string> = {
   method: '#ec4899',
   dataset: '#14b8a6',
   metric: '#6366f1',
+  reference: '#94a3b8',
 };
 
 export const NODE_LABELS: Record<NodeKind, string> = {
   paper: 'Paper', concept: 'Concept', hypothesis: 'Hypothesis', experiment: 'Experiment',
-  finding: 'Finding', method: 'Method', dataset: 'Dataset', metric: 'Metric',
+  finding: 'Finding', method: 'Method', dataset: 'Dataset', metric: 'Metric', reference: 'Reference',
 };
 
 interface SimNode {

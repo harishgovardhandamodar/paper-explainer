@@ -5,10 +5,11 @@ export type Importance = 'high' | 'medium' | 'low';
 export type ReadingStatus = 'unread' | 'in_progress' | 'done';
 export type ReadingPriority = 'high' | 'medium' | 'low';
 export type DiagramKind = 'architecture' | 'workflow' | 'taxonomy' | 'timeline' | 'leakage' | 'other';
-export type NodeKind = 'paper' | 'concept' | 'hypothesis' | 'experiment' | 'finding' | 'method' | 'dataset' | 'metric';
+export type NodeKind = 'paper' | 'concept' | 'hypothesis' | 'experiment' | 'finding' | 'method' | 'dataset' | 'metric' | 'reference';
 export type EdgeKind =
   | 'proposes' | 'tests' | 'supports' | 'challenges' | 'uses'
-  | 'extends' | 'subsumes' | 'refines' | 'produces' | 'related_to';
+  | 'extends' | 'subsumes' | 'refines' | 'produces' | 'related_to'
+  | 'cites' | 'cited_by';
 
 export interface PaperCounts {
   hypotheses: number;
@@ -158,8 +159,29 @@ export interface Paper extends PaperSummary {
   workflows: Workflow[];
   concepts: Concept[];
   sections: PaperSection[];
+  references: PaperReference[];
   notes: string[];
   enhancement: PaperEnhancement | null;
+}
+
+export interface PaperReference {
+  id: string;
+  raw: string;
+  title: string | null;
+  authors: string[];
+  year: number | null;
+  arxiv_id: string | null;
+  doi: string | null;
+  resolved_paper_id: string | null;
+  enriched: boolean;
+}
+
+export interface CitationEntry {
+  paper_id: string;
+  title: string;
+  cites: string[];
+  cited_by: string[];
+  unresolved: number;
 }
 
 export type AnnotationTarget = 'entity' | 'quote' | 'section';

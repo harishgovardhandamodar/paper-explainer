@@ -72,6 +72,51 @@ pub async fn get_paper(
 
 /// Deterministically mined, reviewable open-question candidates for a paper.
 /// Nothing is persisted here; the UI decides which candidates become follow-ups.
+// -- Citation graph --------------------------------------------------------
+
+/// Per-paper citation summary (outgoing `cites`, incoming `cited_by`) plus
+/// unresolved bibliography counts.
+pub async fn citations(State(state): State<ApiState>) -> ApiResult<Json<Vec<crate::citations::CitationEntry>>> {
+    Ok(Json(crate::citations::summary(&state.store.read()?.papers)))
+}
+
+pub async fn paper_references(
+    State(state): State<ApiState>, Path(id): Path<String>,
+) -> ApiResult<Json<Vec<PaperReference>>> {
+    Ok(Json(state.store.get_paper(&id)?.references))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct EnrichRequest {
+    pub doi: String,
+}
+
+/// Best-effort Crossref metadata lookup; the caller decides whether to store
+/// the returned fields. A failure here never affects the stored extraction.
+pub async fn enrich_reference(Json(req): Json<EnrichRequest>) -> ApiResult<Json<PaperReference>> {
+    Ok(Json(crate::citations::enrich_crossref(&req.doi).await?))
+}
+
+/// Enrich a stored bibliography entry in place with Crossref metadata.
+pub async fn enrich_paper_reference(
+    State(state): State<ApiState>, Path((id, ref_id)): Path<(String, String)>,
+) -> ApiResult<Json<PaperReference>> {
+    let mut paper = state.store.get_paper(&id)?;
+    let doi = paper.references.iter().find(|r| r.id == ref_id)
+        .and_then(|r| r.doi.clone())
+        .ok_or_else(|| AppError::NotFound(format!("reference '{ref_id}' (or its DOI)")))?;
+    let enriched = crate::citations::enrich_crossref(&doi).await?;
+    let target = paper.references.iter_mut().find(|r| r.id == ref_id).unwrap();
+    if enriched.title.is_some() { target.title = enriched.title; }
+    if !enriched.authors.is_empty() { target.authors = enriched.authors; }
+    if enriched.year.is_some() { target.year = enriched.year; }
+    if enriched.arxiv_id.is_some() { target.arxiv_id = enriched.arxiv_id; }
+    target.enriched = true;
+    let result = target.clone();
+    state.store.upsert_paper(paper)?;
+    Ok(Json(result))
+}
+
 pub async fn open_questions(
     State(state): State<ApiState>, Path(id): Path<String>,
 ) -> ApiResult<Json<Vec<OpenQuestion>>> {

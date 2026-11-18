@@ -1,5 +1,6 @@
 pub mod api;
 pub mod categories;
+pub mod citations;
 pub mod error;
 pub mod explain;
 pub mod exports;
@@ -36,6 +37,10 @@ pub fn build_router(state: api::ApiState, dist: &Path) -> Router {
         .route("/api/papers/{id}/export", get(api::export_markdown))
         .route("/api/papers/{id}/export/{format}", get(api::export_format))
         .route("/api/papers/{id}/open-questions", get(api::open_questions))
+        .route("/api/citations", get(api::citations))
+        .route("/api/citations/enrich", post(api::enrich_reference))
+        .route("/api/papers/{id}/references", get(api::paper_references))
+        .route("/api/papers/{id}/references/{ref_id}/enrich", post(api::enrich_paper_reference))
         .route("/api/reading-states", get(api::list_reading_states))
         .route("/api/reading-states/{paper_id}", get(api::get_reading_state).put(api::put_reading_state))
         .route("/api/annotations", get(api::list_annotations).post(api::create_annotation))

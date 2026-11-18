@@ -567,6 +567,36 @@ a:hover { text-decoration: underline; }
 .ai-preview { padding: 16px 20px; align-items: center; }
 .ai-preview-tldr { font-family: var(--font-serif); font-size: 16px; line-height: 1.5; margin-top: 6px; }
 
+/* ---------- Citation graph ---------- */
+.cite-network { margin-bottom: 14px; padding: 14px 16px; }
+.cite-network .section-head h2 { margin: 0 0 6px; font-family: var(--font-serif); font-size: 17px; }
+.cite-stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.cite-stat { display: flex; flex-direction: column; gap: 2px; min-width: 118px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-elevated); padding: 11px 14px; }
+.cite-stat.highlight { border-color: var(--violet); background: var(--violet-soft, var(--accent-soft)); }
+.cite-stat b { font-family: var(--font-serif); font-size: 23px; line-height: 1; color: var(--accent); }
+.cite-stat span { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; font-weight: 700; color: var(--text-faint); }
+.cite-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.cite-toolbar select { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 12px; }
+.cite-table { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--bg-elevated); }
+.cite-table-head, .cite-row-main { display: grid; grid-template-columns: minmax(220px, 1fr) 70px 84px 76px 128px; gap: 10px; align-items: center; }
+.cite-table-head { padding: 10px 14px; background: var(--bg-subtle); border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: var(--text-faint); }
+.cite-row { border-bottom: 1px solid var(--border); }
+.cite-row:last-child { border-bottom: 0; }
+.cite-row-main { padding: 11px 14px; }
+.cite-paper-title { text-align: left; font-family: var(--font-serif); font-size: 14px; line-height: 1.35; }
+.cite-num { font-family: var(--font-mono); font-size: 15px; color: var(--text-muted); }
+.cite-num.strong { color: var(--violet); font-weight: 700; }
+.cite-num.faint { color: var(--text-faint); }
+.cite-row-actions { display: flex; justify-content: flex-end; }
+.cite-row-detail { padding: 12px 14px 16px; border-top: 1px dashed var(--border); background: var(--bg-subtle); }
+.cite-refs { display: grid; gap: 6px; }
+.cite-ref { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-elevated); }
+.cite-ref-main { min-width: 200px; flex: 1; }
+.cite-ref-title { font-size: 12.5px; font-weight: 600; }
+.cite-ref-meta { margin-top: 2px; }
+.linkish { border: 0; background: none; padding: 0; color: var(--accent); cursor: pointer; font-family: inherit; }
+.linkish:hover { text-decoration: underline; }
+
 /* ---------- Reading triage ---------- */
 .facet-subhead { font-size: 10px; text-transform: uppercase; letter-spacing: .09em; font-weight: 700; color: var(--text-faint); padding: 10px 2px 2px; border-top: 1px solid var(--border); margin-top: 8px; }
 .triage-stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }

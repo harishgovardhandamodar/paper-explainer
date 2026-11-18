@@ -35,6 +35,7 @@ pub fn seed_paper() -> Paper {
         status: PaperStatus::Ready,
         source: PaperSource::Curated,
         arxiv_id: Some("2609.10117".into()),
+        doi: Some("10.48550/arXiv.2609.10117".into()),
         version: Some("v2".into()),
         added_at: now,
         updated_at: now,
@@ -45,6 +46,7 @@ pub fn seed_paper() -> Paper {
         workflows: workflows(),
         concepts: concepts(),
         sections: sections(),
+        references: Vec::new(),
         notes: vec![
             "Curated from the full paper, including Tables 1–9 and Appendices C–F.".into(),
             "The authors explicitly do not claim universal security for O_ext — see the caveat on the key finding.".into(),

@@ -98,6 +98,7 @@ const PLAIN_LABELS: Record<string, string> = {
   'Hypothesis tracker': 'Who agrees with whom',
   'Synthesis builder': 'Write the bridge',
   'Triage inbox': 'Reading queue',
+  'Citation graph': 'Who builds on whom',
   'Reading queue': 'What to read next',
   'Synthesis': 'Bring the papers together',
   'Conflicts across papers': 'Where the evidence disagrees',

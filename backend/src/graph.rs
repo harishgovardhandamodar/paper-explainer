@@ -155,6 +155,39 @@ pub fn rebuild(papers: &[Paper], existing_custom_edges: &[GraphEdge]) -> Knowled
         }
     }
 
+    // Citation edges from parsed bibliographies. Resolved references link two
+    // paper nodes; unresolved ones get a lightweight reference node so the
+    // bibliography is still explorable. `cited_by` is the inverse view exposed
+    // by the citations API rather than a duplicate overlapping graph edge.
+    for paper in papers {
+        let citing_id = format!("paper:{}", paper.id);
+        for r in &paper.references {
+            if let Some(cited_id) = &r.resolved_paper_id {
+                let target = format!("paper:{}", cited_id);
+                add_edge(&mut edges, &mut edge_keys, GraphEdge {
+                    id: format!("e|{}|{}|cites", citing_id, target),
+                    source: citing_id.clone(), target,
+                    kind: EdgeKind::Cites, label: Some("cites".into()),
+                    paper_ids: vec![paper.id.clone(), cited_id.clone()],
+                });
+            } else {
+                let rid = format!("reference:{}", r.id);
+                add_node(&mut nodes, &mut node_index, GraphNode {
+                    id: rid.clone(), kind: NodeKind::Reference,
+                    label: truncate_label(r.title.as_deref().unwrap_or(&r.raw), 52),
+                    detail: truncate_label(&r.raw, 170),
+                    paper_ids: vec![paper.id.clone()], weight: 1,
+                });
+                add_edge(&mut edges, &mut edge_keys, GraphEdge {
+                    id: format!("e|{}|{}|cites", citing_id, rid),
+                    source: citing_id.clone(), target: rid,
+                    kind: EdgeKind::Cites, label: Some("cites".into()),
+                    paper_ids: vec![paper.id.clone()],
+                });
+            }
+        }
+    }
+
     for edge in existing_custom_edges {
         add_edge(&mut edges, &mut edge_keys, edge.clone());
     }

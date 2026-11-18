@@ -524,6 +524,9 @@ impl StoreHandle {
 
     pub fn rebuild_graph(&self) -> AppResult<()> {
         let mut store = self.write()?;
+        // Re-resolve bibliography entries against the current corpus so a
+        // reference becomes a citation edge as soon as its paper is added.
+        crate::citations::resolve_all(&mut store.papers);
         let custom = store.custom_edges.clone();
         store.graph = graph::rebuild(&store.papers, &custom);
         Ok(())

@@ -5,6 +5,7 @@ import { AddPaperDialog } from './components/AddPaperDialog';
 import { AnnotationsView } from './components/AnnotationsView';
 import { AudienceSwitch } from './components/AudienceSwitch';
 import { AiView } from './components/AiView';
+import { CitationsView } from './components/CitationsView';
 import { CompareView } from './components/CompareView';
 import { DesignView } from './components/DesignView';
 import { ExportView } from './components/ExportView';
@@ -27,7 +28,7 @@ import {
   LibraryView, OverviewView, WorkflowsView, type ViewKey,
 } from './views';
 
-const GLOBAL_VIEWS: ViewKey[] = ['library', 'design', 'ai', 'compare', 'export', 'tracker', 'synthesis', 'triage'];
+const GLOBAL_VIEWS: ViewKey[] = ['library', 'design', 'ai', 'compare', 'export', 'tracker', 'synthesis', 'triage', 'citations'];
 
 const NAV: { key: ViewKey; label: string; icon: string }[] = [
   { key: 'overview', label: 'Overview', icon: '⌂' },
@@ -42,6 +43,7 @@ const NAV: { key: ViewKey; label: string; icon: string }[] = [
   { key: 'tracker', label: 'Hypothesis tracker', icon: '⇄' },
   { key: 'synthesis', label: 'Synthesis builder', icon: '≋' },
   { key: 'triage', label: 'Triage inbox', icon: '▣' },
+  { key: 'citations', label: 'Citation graph', icon: '⤳' },
   { key: 'hypotheses', label: 'Hypotheses', icon: '◎' },
   { key: 'experiments', label: 'Experiments', icon: '⚗' },
   { key: 'diagrams', label: 'Diagrams', icon: '◇' },
@@ -273,7 +275,7 @@ export default function App() {
 
       <main className="main">
         <header className="topbar">
-          <div className="crumb">Collection <span className="faint">/</span> <strong>{view === 'design' ? 'Help & Design' : view === 'ai' ? 'AI insights' : view === 'library' ? 'Library' : view === 'triage' ? 'Triage inbox' : view === 'tracker' ? 'Hypothesis tracker' : view === 'synthesis' ? 'Synthesis builder' : paper ? (paper.title.length > 46 ? `${paper.title.slice(0, 46)}…` : paper.title) : 'Library'}</strong></div>
+          <div className="crumb">Collection <span className="faint">/</span> <strong>{view === 'design' ? 'Help & Design' : view === 'ai' ? 'AI insights' : view === 'library' ? 'Library' : view === 'triage' ? 'Triage inbox' : view === 'citations' ? 'Citation graph' : view === 'tracker' ? 'Hypothesis tracker' : view === 'synthesis' ? 'Synthesis builder' : paper ? (paper.title.length > 46 ? `${paper.title.slice(0, 46)}…` : paper.title) : 'Library'}</strong></div>
           <AudienceSwitch />
           <div className="search-wrap">
             <span className="search-icon">⌕</span>
@@ -292,7 +294,7 @@ export default function App() {
               </div>
             )}
           </div>
-          {paper && view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && view !== 'tracker' && view !== 'synthesis' && view !== 'triage' && <>
+          {paper && view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && view !== 'tracker' && view !== 'synthesis' && view !== 'triage' && view !== 'citations' && <>
             <a className="btn sm" href={api.exportUrl(paper.id)} target="_blank" rel="noreferrer">Export MD</a>
             <button className="btn sm" onClick={handleRefresh} title="Re-import from source">↻</button>
           </>}
@@ -332,9 +334,12 @@ export default function App() {
               onOpen={(id, target) => void openPaper(id, (target as ViewKey) ?? 'overview')}
               onNotify={notify} />
           )}
+          {view === 'citations' && (
+            <CitationsView papers={papers} onOpen={(id) => void openPaper(id)} onNotify={notify} />
+          )}
           {view === 'export' && paper && <ExportView paper={paper} onNotify={notify} />}
           {view === 'export' && !paper && <div className="empty"><div className="empty-icon">◌</div><strong>No paper selected</strong></div>}
-          {view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && view !== 'tracker' && view !== 'synthesis' && view !== 'triage' && paper && stats && (
+          {view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && view !== 'tracker' && view !== 'synthesis' && view !== 'triage' && view !== 'citations' && paper && stats && (
             <>
               {view === 'overview' && <OverviewView paper={paper} stats={stats} onNavigate={setView} />}
               {view === 'read' && <ReadView paper={paper} onNavigate={setView} />}
@@ -353,7 +358,7 @@ export default function App() {
               {view === 'graph' && <GraphView graph={graph} activePaperId={paper.id} onAddEdge={addEdge} />}
             </>
           )}
-          {view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && view !== 'tracker' && view !== 'synthesis' && view !== 'triage' && !paper && (
+          {view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && view !== 'tracker' && view !== 'synthesis' && view !== 'triage' && view !== 'citations' && !paper && (
             <div className="empty"><div className="empty-icon">◌</div><strong>No paper selected</strong>
               <div style={{ marginTop: 10 }}><button className="btn primary" onClick={() => setDialog(true)}>Add your first paper</button></div>
             </div>
