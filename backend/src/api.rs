@@ -86,6 +86,37 @@ pub async fn add_paper(
     Ok((StatusCode::CREATED, Json(paper)))
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ResolveQuery {
+    pub value: String,
+}
+
+/// Identify an arXiv id / DOI before importing, so the UI can warn about a
+/// duplicate (including version differences) without changing any state.
+pub async fn resolve_identifier(
+    State(state): State<ApiState>, Query(params): Query<ResolveQuery>,
+) -> ApiResult<Json<ResolveResponse>> {
+    let resolved = crate::identifiers::parse(&params.value);
+    let existing_title = {
+        let store = state.store.read()?;
+        if resolved.canonical_id.is_empty() { None }
+        else { store.find_paper(&resolved.canonical_id).map(|p| p.title.clone()) }
+    };
+    Ok(Json(ResolveResponse {
+        kind: match resolved.kind {
+            crate::identifiers::IdentifierKind::Arxiv => "arxiv",
+            crate::identifiers::IdentifierKind::Doi => "doi",
+            crate::identifiers::IdentifierKind::Other => "other",
+        }.into(),
+        canonical_id: resolved.canonical_id,
+        bare_id: resolved.bare_id,
+        version: resolved.version,
+        url: resolved.url,
+        already_in_library: existing_title.is_some(),
+        existing_title,
+    }))
+}
+
 pub async fn delete_paper(
     State(state): State<ApiState>, Path(id): Path<String>,
 ) -> ApiResult<StatusCode> {

@@ -4,8 +4,10 @@ pub mod error;
 pub mod explain;
 pub mod exports;
 pub mod graph;
+pub mod identifiers;
 pub mod ingest;
 pub mod llm;
+pub mod pdf;
 pub mod models;
 pub mod parse;
 pub mod questions;
@@ -25,6 +27,7 @@ pub fn build_router(state: api::ApiState, dist: &Path) -> Router {
     let routes = Router::new()
         .route("/api/health", get(api::health))
         .route("/api/papers", get(api::list_papers).post(api::add_paper))
+        .route("/api/resolve", get(api::resolve_identifier))
         .route("/api/library", get(api::library))
         .route("/api/categories", get(api::categories))
         .route("/api/papers/{id}", get(api::get_paper).delete(api::delete_paper))

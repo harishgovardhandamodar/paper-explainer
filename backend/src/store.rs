@@ -543,6 +543,7 @@ fn source_name(source: &PaperSource) -> &'static str {
         PaperSource::Heuristic => "heuristic",
         PaperSource::LlmAssisted => "llm_assisted",
         PaperSource::Manual => "manual",
+        PaperSource::Pdf => "pdf",
     }
 }
 

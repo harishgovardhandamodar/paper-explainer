@@ -395,6 +395,13 @@ a:hover { text-decoration: underline; }
 .segmented { display: inline-flex; background: var(--bg-subtle); border-radius: 9px; padding: 3px; margin-bottom: 16px; }
 .segmented button { border: 0; background: transparent; padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 600; color: var(--text-muted); }
 .segmented button.active { background: var(--bg-elevated); color: var(--text); box-shadow: var(--shadow-sm); }
+.ingest-modes { display: flex; width: 100%; }
+.ingest-modes button { flex: 1; white-space: nowrap; padding: 7px 6px; font-size: 11.5px; }
+.resolve-preview { border: 1px solid var(--green-border, var(--border)); background: var(--green-soft, var(--bg-subtle)); border-radius: 9px; padding: 10px 12px; margin-bottom: 16px; font-size: 12px; }
+.resolve-preview.duplicate { border-color: var(--amber-border, var(--border)); background: var(--amber-soft, var(--bg-subtle)); }
+.resolve-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.resolve-ok { color: var(--green, var(--text-muted)); margin-top: 6px; }
+.resolve-warn { color: var(--amber, var(--text-muted)); margin-top: 6px; line-height: 1.5; }
 
 /* ---------- Library ---------- */
 .paper-card { display: flex; flex-direction: column; gap: 10px; }

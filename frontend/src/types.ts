@@ -1,5 +1,5 @@
 export type PaperStatus = 'ready' | 'processing' | 'failed';
-export type PaperSource = 'curated' | 'heuristic' | 'llm_assisted' | 'manual';
+export type PaperSource = 'curated' | 'heuristic' | 'llm_assisted' | 'manual' | 'pdf';
 export type HypothesisStatus = 'supported' | 'partially_supported' | 'rejected' | 'open';
 export type Importance = 'high' | 'medium' | 'low';
 export type ReadingStatus = 'unread' | 'in_progress' | 'done';
@@ -30,6 +30,8 @@ export interface PaperSummary {
   primary_category: string;
   status: PaperStatus;
   source: PaperSource;
+  arxiv_id: string | null;
+  version: string | null;
   added_at: string;
   counts: PaperCounts;
 }
@@ -424,7 +426,20 @@ export interface LibraryQuery {
 
 export interface IngestRequest {
   url?: string;
+  doi?: string;
+  pdf?: string;
+  pdf_filename?: string;
   text?: string;
   title?: string;
   overwrite?: boolean;
+}
+
+export interface ResolveResponse {
+  kind: 'arxiv' | 'doi' | 'other';
+  canonical_id: string;
+  bare_id: string | null;
+  version: string | null;
+  url: string | null;
+  already_in_library: boolean;
+  existing_title: string | null;
 }

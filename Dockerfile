@@ -24,7 +24,7 @@ RUN npm run build
 # ---------------------------------------------------------------------------
 FROM debian:bookworm-slim
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl \
+ && apt-get install -y --no-install-recommends ca-certificates curl poppler-utils \
  && rm -rf /var/lib/apt/lists/* \
  && mkdir -p /app/data
 

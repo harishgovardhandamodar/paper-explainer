@@ -1,8 +1,8 @@
 import type {
   Annotation, CategoryDef, CreateAnnotation, CreateFollowUp, FollowUp, GraphEdge, Health,
   CreateSynthesis, HypothesisTracker, IngestRequest, KnowledgeGraph, LibraryQuery, LibraryResponse,
-  LlmStatus, OpenQuestion, Paper, PaperSummary, ReadingState, SearchResult, Stats, Synthesis,
-  UpdateReadingState, UpdateSynthesis,
+  LlmStatus, OpenQuestion, Paper, PaperSummary, ReadingState, ResolveResponse, SearchResult, Stats,
+  Synthesis, UpdateReadingState, UpdateSynthesis,
 } from './types';
 
 const BASE = '/api';
@@ -45,6 +45,8 @@ export const api = {
     request<ReadingState>(`/reading-states/${encodeURIComponent(paperId)}`, {
       method: 'PUT', body: JSON.stringify(body),
     }),
+  resolve: (value: string) =>
+    request<ResolveResponse>(`/resolve?value=${encodeURIComponent(value)}`),
   addPaper: (body: IngestRequest) =>
     request<Paper>('/papers', { method: 'POST', body: JSON.stringify(body) }),
   deletePaper: (id: string) =>

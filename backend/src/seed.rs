@@ -34,6 +34,8 @@ pub fn seed_paper() -> Paper {
         primary_category: String::new(),
         status: PaperStatus::Ready,
         source: PaperSource::Curated,
+        arxiv_id: Some("2609.10117".into()),
+        version: Some("v2".into()),
         added_at: now,
         updated_at: now,
         hypotheses: hypotheses(),

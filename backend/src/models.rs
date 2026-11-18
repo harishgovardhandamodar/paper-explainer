@@ -64,6 +64,10 @@ pub struct Paper {
     pub primary_category: String,
     pub status: PaperStatus,
     pub source: PaperSource,
+    /// Canonical arXiv id without a version, e.g. `2609.10117`.
+    pub arxiv_id: Option<String>,
+    /// Version suffix from the ingested source, e.g. `v2`.
+    pub version: Option<String>,
     pub added_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub hypotheses: Vec<Hypothesis>,
@@ -126,6 +130,7 @@ impl Default for Paper {
             url: String::new(), venue: None, abstract_text: String::new(), summary: String::new(),
             tags: Vec::new(), categories: Vec::new(), primary_category: String::new(),
             status: PaperStatus::Ready, source: PaperSource::Heuristic,
+            arxiv_id: None, version: None,
             added_at: now, updated_at: now, hypotheses: Vec::new(), experiments: Vec::new(),
             findings: Vec::new(), diagrams: Vec::new(), workflows: Vec::new(),
             concepts: Vec::new(), sections: Vec::new(), notes: Vec::new(),
@@ -148,6 +153,8 @@ impl Paper {
             primary_category: self.primary_category.clone(),
             status: self.status.clone(),
             source: self.source.clone(),
+            arxiv_id: self.arxiv_id.clone(),
+            version: self.version.clone(),
             added_at: self.added_at,
             counts: PaperCounts {
                 hypotheses: self.hypotheses.len(),
@@ -186,6 +193,8 @@ pub struct PaperSummary {
     pub primary_category: String,
     pub status: PaperStatus,
     pub source: PaperSource,
+    pub arxiv_id: Option<String>,
+    pub version: Option<String>,
     pub added_at: DateTime<Utc>,
     pub counts: PaperCounts,
 }
@@ -219,6 +228,8 @@ pub enum PaperSource {
     LlmAssisted,
     /// Pasted text supplied by the user.
     Manual,
+    /// Text extracted from an uploaded PDF.
+    Pdf,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -873,18 +884,42 @@ pub struct UpdateSynthesis {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
 pub struct IngestRequest {
-    /// URL to fetch. Either `url` or `text` must be provided.
+    /// URL, bare arXiv id or DOI to fetch. Either `url`, `doi`, `pdf` or `text` must be provided.
     pub url: Option<String>,
+    /// DOI (with or without a `doi:` prefix or resolver URL).
+    pub doi: Option<String>,
+    /// Base64-encoded PDF bytes.
+    pub pdf: Option<String>,
+    /// Original filename for the uploaded PDF, used in the stored URL.
+    pub pdf_filename: Option<String>,
     /// Raw paper text/HTML pasted by the user.
     pub text: Option<String>,
     /// Optional human-friendly title override.
     pub title: Option<String>,
-    /// Force re-ingest if the paper already exists.
+    /// Force re-ingest if the paper already exists (e.g. a new arXiv version).
     pub overwrite: bool,
 }
 
 impl Default for IngestRequest {
-    fn default() -> Self { Self { url: None, text: None, title: None, overwrite: false } }
+    fn default() -> Self {
+        Self {
+            url: None, doi: None, pdf: None, pdf_filename: None,
+            text: None, title: None, overwrite: false,
+        }
+    }
+}
+
+/// Result of identifying a user-supplied string, before any import happens.
+#[derive(Debug, Clone, Serialize)]
+pub struct ResolveResponse {
+    pub kind: String,
+    pub canonical_id: String,
+    pub bare_id: Option<String>,
+    pub version: Option<String>,
+    pub url: Option<String>,
+    /// True when an existing paper with this canonical id is in the store.
+    pub already_in_library: bool,
+    pub existing_title: Option<String>,
 }
 
 /// Readiness of the configured Ollama gateway (fox-services).
