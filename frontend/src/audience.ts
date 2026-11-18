@@ -98,6 +98,7 @@ const PLAIN_LABELS: Record<string, string> = {
   'Knowledge graph': 'Idea map',
   'AI insights': 'AI summary',
   Present: 'Slideshow',
+  Compare: 'Side by side',
   'The question': 'The big question',
   Method: 'How they did it',
   Limits: 'What it does not show',
