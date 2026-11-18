@@ -560,6 +560,23 @@ a:hover { text-decoration: underline; }
 .ai-preview { padding: 16px 20px; align-items: center; }
 .ai-preview-tldr { font-family: var(--font-serif); font-size: 16px; line-height: 1.5; margin-top: 6px; }
 
+/* ---------- Audience lens ---------- */
+.lens-switch { display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--border); border-radius: 9px; background: var(--bg); padding: 3px; flex: 0 0 auto; }
+.lens-caption { font-size: 9.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-faint); font-weight: 700; padding: 0 6px; }
+.lens-btn { display: inline-flex; align-items: center; gap: 5px; border: 0; background: transparent; color: var(--text-muted); padding: 5px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.lens-btn:hover { background: var(--bg-subtle); color: var(--text); }
+.lens-btn.active { background: var(--accent); color: var(--on-accent); }
+.lens-glyph { font-size: 12px; }
+.lens-hint { display: flex; align-items: center; gap: 10px; border: 1px solid var(--accent-border); background: var(--accent-soft); border-radius: var(--radius-sm); padding: 9px 13px; margin-bottom: 18px; font-size: 12px; line-height: 1.45; color: var(--text-muted); }
+.lens-hint strong { color: var(--accent-strong); }
+.lens-hint-icon { font-size: 15px; color: var(--accent); }
+.lens-details { margin-top: 8px; }
+.lens-details-toggle { border: 0; background: transparent; color: var(--accent); font-size: 11.5px; font-weight: 600; padding: 4px 0; cursor: pointer; }
+.lens-details-body { border-left: 2px solid var(--border); padding-left: 12px; margin-top: 4px; }
+.lens-glossary { margin-bottom: 22px; }
+.lens-glossary-item { padding: 6px 0; }
+.lens-glossary-term { font-weight: 700; font-size: 13px; color: var(--text); }
+
 /* ---------- Presentation mode ---------- */
 .present-app { display: block; background: var(--bg); }
 .present-shell { position: relative; display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: radial-gradient(circle at 50% 30%, var(--bg-elevated), var(--bg)); }
@@ -589,6 +606,8 @@ a:hover { text-decoration: underline; }
 .present-stage:fullscreen { background: radial-gradient(circle at 50% 30%, var(--bg-elevated), var(--bg)); }
 
 @media (max-width: 1180px) {
+  .lens-caption, .lens-label { display: none; }
+  .lens-btn { padding: 6px 9px; }
   .design-body-row { grid-template-columns: minmax(0, 1fr); }
   .design-outline { display: none; }
   .library-layout { grid-template-columns: 1fr; }

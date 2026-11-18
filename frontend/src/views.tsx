@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from './api';
+import { audienceDef, lensLabel, useAudience } from './audience';
+import { GlossaryCard, LensHint, TechnicalDetails } from './components/LensBits';
 import { MermaidDiagram } from './components/MermaidDiagram';
 import { ForceGraph, NODE_COLORS, NODE_LABELS } from './components/KnowledgeGraph';
 import { Badge, Chips, Empty, PageHead, SectionDivider, StatCard, relativeDate } from './components/ui';
@@ -14,12 +16,15 @@ export type ViewKey = 'overview' | 'hypotheses' | 'experiments' | 'diagrams' | '
 export function OverviewView({ paper, stats, onNavigate }: {
   paper: Paper; stats: Stats; onNavigate: (v: ViewKey) => void;
 }) {
+  const audience = useAudience();
+  const def = audienceDef(audience);
   const topFindings = [...paper.findings]
     .sort((a, b) => (a.importance === 'high' ? 0 : 1) - (b.importance === 'high' ? 0 : 1))
     .slice(0, 3);
 
   return (
     <div className="content-inner">
+      <LensHint audience={audience} />
       <div className="card" style={{ padding: 26, marginBottom: 18 }}>
         <div className="row" style={{ justifyContent: 'space-between' }}>
           <div className="row">
@@ -39,16 +44,16 @@ export function OverviewView({ paper, stats, onNavigate }: {
       </div>
 
       <div className="stat-grid" style={{ marginBottom: 18 }}>
-        <StatCard num={paper.hypotheses.length} label="Hypotheses" tone="accent" />
-        <StatCard num={paper.experiments.length} label="Experiments" />
-        <StatCard num={paper.findings.length} label="Key findings" tone="green" />
-        <StatCard num={paper.diagrams.length} label="Mermaid diagrams" tone="violet" />
-        <StatCard num={paper.workflows.length} label="Workflows" />
-        <StatCard num={stats.graph_nodes} label="Graph nodes" />
+        <StatCard num={paper.hypotheses.length} label={lensLabel(audience, 'Hypotheses')} tone="accent" />
+        <StatCard num={paper.experiments.length} label={lensLabel(audience, 'Experiments')} />
+        <StatCard num={paper.findings.length} label={lensLabel(audience, 'Key findings')} tone="green" />
+        <StatCard num={paper.diagrams.length} label={lensLabel(audience, 'Diagrams')} tone="violet" />
+        <StatCard num={paper.workflows.length} label={lensLabel(audience, 'Workflows')} />
+        <StatCard num={stats.graph_nodes} label={lensLabel(audience, 'Knowledge graph')} />
       </div>
 
       <div className="callout" style={{ marginBottom: 26 }}>
-        <h3>Explained in plain language</h3>
+        <h3>{lensLabel(audience, 'Explained in plain language')}</h3>
         <div className="prose">{paper.summary}</div>
       </div>
 
@@ -61,8 +66,13 @@ export function OverviewView({ paper, stats, onNavigate }: {
             </div>
             <button className="btn sm" onClick={() => onNavigate('ai')}>AI insights →</button>
           </div>
+          {def.detail !== 'full' && paper.enhancement.key_insights.length > 0 && (
+            <ul className="results-list">{paper.enhancement.key_insights.slice(0, 3).map((s) => <li key={s}>{s}</li>)}</ul>
+          )}
         </div>
       )}
+
+      {def.glossary && <GlossaryCard concepts={paper.concepts} />}
 
       <SectionDivider title="Start here" />
       <div className="grid-3" style={{ marginBottom: 8 }}>
@@ -79,13 +89,16 @@ export function OverviewView({ paper, stats, onNavigate }: {
         ))}
       </div>
 
-      <SectionDivider title="Headline findings" />
+      <SectionDivider title={lensLabel(audience, 'Headline findings')} />
       <div className="grid-2">
         {topFindings.map((f) => (
           <div key={f.id} className="card entity-card">
-            <div className="ec-head"><span className="ec-id">{f.id}</span><Badge tone={f.importance}>{f.importance}</Badge></div>
+            <div className="ec-head">
+              {def.showIds && <span className="ec-id">{f.id}</span>}
+              <Badge tone={f.importance}>{lensLabel(audience, f.importance)}</Badge>
+            </div>
             <div className="ec-simple" style={{ marginTop: 10 }}>{f.simplified}</div>
-            <div className="ec-evidence">{f.evidence}</div>
+            {def.showEvidence && <TechnicalDetails audience={audience}><div className="ec-evidence">{f.evidence}</div></TechnicalDetails>}
           </div>
         ))}
         {!topFindings.length && <Empty title="No findings extracted yet" />}
@@ -96,26 +109,46 @@ export function OverviewView({ paper, stats, onNavigate }: {
 
 /* ------------------------------- Hypotheses ------------------------------- */
 export function HypothesesView({ paper }: { paper: Paper }) {
+  const audience = useAudience();
+  const def = audienceDef(audience);
   return (
     <div className="content-inner">
-      <PageHead eyebrow="Claims under test" title="Hypotheses">
+      <LensHint audience={audience} />
+      <PageHead eyebrow={lensLabel(audience, 'Claims under test')} title={lensLabel(audience, 'Hypotheses')}>
         Each claim, its plain-language version, and the evidence the paper brings to bear on it.
       </PageHead>
       <div className="grid-2">
         {paper.hypotheses.map((h, i) => (
           <div key={h.id} className="card entity-card">
             <div className="ec-head">
-              <span className="ec-id">H{i + 1} · {h.id}</span>
+              {def.showIds && <span className="ec-id">H{i + 1} · {h.id}</span>}
               <Badge tone={h.status}>{h.status.replace('_', ' ')}</Badge>
             </div>
-            <div className="ec-statement">{h.statement}</div>
-            <div className="ec-simple">{h.simplified}</div>
-            {h.confidence && <div className="small faint" style={{ marginTop: 10 }}>Confidence: {h.confidence}</div>}
-            <div className="row" style={{ marginTop: 12 }}>
-              {h.section && <span className="chip mono">{h.section}</span>}
-              {h.evidence_ids.map((id) => <span key={id} className="chip accent mono">{id}</span>)}
-              {h.experiment_ids.map((id) => <span key={id} className="chip mono">{id}</span>)}
-            </div>
+            {def.detail === 'plain' ? (
+              <>
+                <div className="ec-simple">{h.simplified}</div>
+                <TechnicalDetails audience={audience}>
+                  <div className="ec-statement">{h.statement}</div>
+                  {h.confidence && <div className="small faint" style={{ marginTop: 10 }}>{lensLabel(audience, 'Confidence')}: {h.confidence}</div>}
+                  <div className="row" style={{ marginTop: 12 }}>
+                    {h.section && <span className="chip mono">{h.section}</span>}
+                    {h.evidence_ids.map((id) => <span key={id} className="chip accent mono">{id}</span>)}
+                    {h.experiment_ids.map((id) => <span key={id} className="chip mono">{id}</span>)}
+                  </div>
+                </TechnicalDetails>
+              </>
+            ) : (
+              <>
+                <div className="ec-statement">{h.statement}</div>
+                <div className="ec-simple">{h.simplified}</div>
+                {h.confidence && <div className="small faint" style={{ marginTop: 10 }}>{lensLabel(audience, 'Confidence')}: {h.confidence}</div>}
+                <div className="row" style={{ marginTop: 12 }}>
+                  {h.section && <span className="chip mono">{h.section}</span>}
+                  {h.evidence_ids.map((id) => <span key={id} className="chip accent mono">{id}</span>)}
+                  {h.experiment_ids.map((id) => <span key={id} className="chip mono">{id}</span>)}
+                </div>
+              </>
+            )}
           </div>
         ))}
         {!paper.hypotheses.length && <Empty title="No hypotheses found" />}
@@ -129,12 +162,14 @@ export function ExperimentsView({ paper }: { paper: Paper }) {
   const [active, setActive] = useState(0);
   const exps = paper.experiments;
   const exp = exps[active];
+  const audience = useAudience();
 
   if (!exp) return <div className="content-inner"><Empty title="No experiments extracted" /></div>;
 
   return (
     <div className="content-inner">
-      <PageHead eyebrow="Methods & results" title="Experiments">
+      <LensHint audience={audience} />
+      <PageHead eyebrow="Methods & results" title={lensLabel(audience, 'Experiments')}>
         Recreated procedures, setups and reported numbers. Select an experiment to inspect its workflow.
       </PageHead>
       <div className="diagram-tabs">
@@ -214,11 +249,13 @@ export function ExperimentsView({ paper }: { paper: Paper }) {
 /* -------------------------------- Diagrams -------------------------------- */
 export function DiagramsView({ paper }: { paper: Paper }) {
   const [active, setActive] = useState(0);
+  const audience = useAudience();
   const diagram = paper.diagrams[active];
   if (!diagram) return <div className="content-inner"><Empty title="No diagrams available" /></div>;
   return (
     <div className="content-inner">
-      <PageHead eyebrow="Visual explanations" title="Diagrams">
+      <LensHint audience={audience} />
+      <PageHead eyebrow="Visual explanations" title={lensLabel(audience, 'Diagrams')}>
         Mermaid diagrams recreate the system, the primitive taxonomy, the attack pipeline and the evaluation flow.
       </PageHead>
       <div className="diagram-tabs">
@@ -241,11 +278,13 @@ export function DiagramsView({ paper }: { paper: Paper }) {
 /* ------------------------------- Workflows -------------------------------- */
 export function WorkflowsView({ paper }: { paper: Paper }) {
   const [active, setActive] = useState(0);
+  const audience = useAudience();
   const wf = paper.workflows[active];
   if (!wf) return <div className="content-inner"><Empty title="No workflows available" /></div>;
   return (
     <div className="content-inner">
-      <PageHead eyebrow="Recreated workflows" title="Step by step">
+      <LensHint audience={audience} />
+      <PageHead eyebrow="Recreated workflows" title={lensLabel(audience, 'Workflows')}>
         Each workflow reconstructs a process from the paper: inputs, actions and outputs at every stage.
       </PageHead>
       <div className="diagram-tabs">
@@ -282,23 +321,39 @@ export function WorkflowsView({ paper }: { paper: Paper }) {
 
 /* -------------------------------- Findings -------------------------------- */
 export function FindingsView({ paper }: { paper: Paper }) {
+  const audience = useAudience();
+  const def = audienceDef(audience);
   return (
     <div className="content-inner">
-      <PageHead eyebrow="What the paper found" title="Key findings">
+      <LensHint audience={audience} />
+      <PageHead eyebrow={lensLabel(audience, 'What the paper found')} title={lensLabel(audience, 'Key findings')}>
         Claims with their supporting numbers and any caveats the authors attach to them.
       </PageHead>
       <div className="grid-2">
         {paper.findings.map((f, i) => (
           <div key={f.id} className="card entity-card">
             <div className="ec-head">
-              <span className="ec-id">F{i + 1} · {f.id}</span>
+              {def.showIds && <span className="ec-id">F{i + 1} · {f.id}</span>}
               <Badge tone={f.importance}>{f.importance}</Badge>
             </div>
-            <div className="ec-statement">{f.claim}</div>
-            <div className="ec-simple">{f.simplified}</div>
-            <div className="ec-evidence">{f.evidence}</div>
-            {f.caveat && <div className="caveat">⚠ {f.caveat}</div>}
-            {f.experiment_id && <div className="row" style={{ marginTop: 10 }}><span className="chip mono">{f.experiment_id}</span></div>}
+            {def.detail === 'plain' ? (
+              <>
+                <div className="ec-simple">{f.simplified}</div>
+                <TechnicalDetails audience={audience}>
+                  <div className="ec-statement">{f.claim}</div>
+                  <div className="ec-evidence">{f.evidence}</div>
+                  {f.experiment_id && <div className="row" style={{ marginTop: 10 }}><span className="chip mono">{f.experiment_id}</span></div>}
+                </TechnicalDetails>
+              </>
+            ) : (
+              <>
+                <div className="ec-statement">{f.claim}</div>
+                <div className="ec-simple">{f.simplified}</div>
+                <div className="ec-evidence">{f.evidence}</div>
+                {f.experiment_id && <div className="row" style={{ marginTop: 10 }}><span className="chip mono">{f.experiment_id}</span></div>}
+              </>
+            )}
+            {def.showCaveats && f.caveat && <div className="caveat">⚠ {f.caveat}</div>}
           </div>
         ))}
         {!paper.findings.length && <Empty title="No findings extracted" />}
@@ -324,6 +379,7 @@ export function GraphView({ graph, activePaperId, onAddEdge }: {
   const [targetId, setTargetId] = useState('');
   const [edgeKind, setEdgeKind] = useState<EdgeKind>('related_to');
   const [adding, setAdding] = useState(false);
+  const audience = useAudience();
 
   const selectNode = (node: GraphNode | null) => {
     setSelected(node);
@@ -348,7 +404,8 @@ export function GraphView({ graph, activePaperId, onAddEdge }: {
 
   return (
     <div className="content-inner">
-      <PageHead eyebrow="The growing collection" title="Knowledge graph">
+      <LensHint audience={audience} />
+      <PageHead eyebrow="The growing collection" title={lensLabel(audience, 'Knowledge graph')}>
         Papers, concepts, hypotheses, experiments and findings are nodes. Add another paper and shared
         concepts become bridges between them.
       </PageHead>

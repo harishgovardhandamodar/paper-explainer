@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { audienceDef, lensLabel, useAudience } from '../audience';
 import { MermaidDiagram } from './MermaidDiagram';
 import type { Paper } from '../types';
 
@@ -131,6 +132,8 @@ export function buildSlides(paper: Paper): Slide[] {
 
 export function PresentView({ paper, onExit }: { paper: Paper; onExit: () => void }) {
   const slides = useMemo(() => buildSlides(paper), [paper]);
+  const audience = useAudience();
+  const lens = audienceDef(audience);
   const [index, setIndex] = useState(0);
   const [showNotes, setShowNotes] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -170,6 +173,7 @@ export function PresentView({ paper, onExit }: { paper: Paper; onExit: () => voi
         <div className="row">
           <button className={`btn sm ${showNotes ? 'primary' : ''}`} onClick={() => setShowNotes((v) => !v)} title="Toggle speaker notes (N)">Notes</button>
           <button className="btn sm" onClick={toggleFullscreen} title="Fullscreen">⛶</button>
+          <span className="chip mono" title={`Audience lens: ${lens.tagline}`}>{lens.icon} {lens.label}</span>
           <span className="present-counter mono">{index + 1} / {slides.length}</span>
         </div>
       </div>
@@ -185,7 +189,7 @@ export function PresentView({ paper, onExit }: { paper: Paper; onExit: () => voi
 
       <div className="present-stage" ref={stageRef}>
         <div className="present-slide" key={`${paper.id}-${index}`}>
-          <div className="eyebrow">{slide.kicker}</div>
+          <div className="eyebrow">{lensLabel(audience, slide.kicker)}</div>
           <h1>{slide.title}</h1>
           {slide.lead && <p className="present-lead">{slide.lead}</p>}
           {slide.bullets.length > 0 && (

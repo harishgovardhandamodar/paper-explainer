@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from './api';
+import { lensLabel, useAudience } from './audience';
 import { AddPaperDialog } from './components/AddPaperDialog';
+import { AudienceSwitch } from './components/AudienceSwitch';
 import { AiView } from './components/AiView';
 import { DesignView } from './components/DesignView';
 import { PresentView } from './components/PresentView';
@@ -40,6 +42,7 @@ export default function App() {
   const [searching, setSearching] = useState(false);
   const [toast, setToast] = useState<{ text: string; error?: boolean } | null>(null);
   const theme = useTheme();
+  const audience = useAudience();
   const searchTimer = useRef<number | undefined>(undefined);
 
   const notify = useCallback((text: string, error = false) => {
@@ -204,7 +207,7 @@ export default function App() {
           <div className="nav-label">Explain</div>
           {NAV.map((n) => (
             <button key={n.key} className={`nav-item ${view === n.key ? 'active' : ''}`} onClick={() => navigate(n.key)}>
-              <span className="icon">{n.icon}</span><span>{n.label}</span>
+              <span className="icon">{n.icon}</span><span>{lensLabel(audience, n.label)}</span>
               {countFor(n.key) !== undefined && <span className="count">{countFor(n.key)}</span>}
             </button>
           ))}
@@ -236,6 +239,7 @@ export default function App() {
       <main className="main">
         <header className="topbar">
           <div className="crumb">Collection <span className="faint">/</span> <strong>{view === 'design' ? 'Help & Design' : view === 'ai' ? 'AI insights' : view === 'library' ? 'Library' : paper ? (paper.title.length > 46 ? `${paper.title.slice(0, 46)}…` : paper.title) : 'Library'}</strong></div>
+          <AudienceSwitch />
           <div className="search-wrap">
             <span className="search-icon">⌕</span>
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search hypotheses, findings, concepts…" />
