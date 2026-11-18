@@ -11,7 +11,7 @@ import type {
   NodeKind, Paper, PaperSummary, Stats,
 } from './types';
 
-export type ViewKey = 'overview' | 'read' | 'source' | 'annotations' | 'hypotheses' | 'experiments' | 'diagrams' | 'workflows' | 'findings' | 'graph' | 'library' | 'design' | 'ai' | 'present' | 'compare' | 'export';
+export type ViewKey = 'overview' | 'read' | 'source' | 'annotations' | 'matrix' | 'hypotheses' | 'experiments' | 'diagrams' | 'workflows' | 'findings' | 'graph' | 'library' | 'design' | 'ai' | 'present' | 'compare' | 'export';
 
 /* -------------------------------- Overview -------------------------------- */
 export function OverviewView({ paper, stats, onNavigate }: {
@@ -79,6 +79,7 @@ export function OverviewView({ paper, stats, onNavigate }: {
       <div className="grid-3" style={{ marginBottom: 8 }}>
         {([
           ['read', '¶', 'Read it top to bottom', 'One continuous story with the evidence beside you'],
+          ['matrix', '▦', 'Cross-check the claims', 'Which experiment supports each claim, and where the gaps are'],
           ['hypotheses', '◎', 'What did they set out to prove?', `${paper.hypotheses.length} hypotheses with status and evidence`],
           ['experiments', '⚗', 'How did they test it?', `${paper.experiments.length} experiments with recreated steps`],
           ['diagrams', '◇', 'Show me the picture', `${paper.diagrams.length} Mermaid diagrams and workflows`],

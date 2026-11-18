@@ -8,6 +8,7 @@ import { AiView } from './components/AiView';
 import { CompareView } from './components/CompareView';
 import { DesignView } from './components/DesignView';
 import { ExportView } from './components/ExportView';
+import { MatrixView } from './components/MatrixView';
 import { PresentView } from './components/PresentView';
 import { ReadView } from './components/ReadView';
 import { SourceView } from './components/SourceView';
@@ -24,6 +25,7 @@ const NAV: { key: ViewKey; label: string; icon: string }[] = [
   { key: 'read', label: 'Read paper', icon: '¶' },
   { key: 'source', label: 'Source evidence', icon: '§' },
   { key: 'annotations', label: 'Annotations', icon: '✎' },
+  { key: 'matrix', label: 'Claim matrix', icon: '▦' },
   { key: 'hypotheses', label: 'Hypotheses', icon: '◎' },
   { key: 'experiments', label: 'Experiments', icon: '⚗' },
   { key: 'diagrams', label: 'Diagrams', icon: '◇' },
@@ -304,6 +306,7 @@ export default function App() {
               {view === 'read' && <ReadView paper={paper} onNavigate={setView} />}
               {view === 'source' && <SourceView paper={paper} onNavigate={setView} />}
               {view === 'annotations' && <AnnotationsView paper={paper} onNotify={notify} />}
+              {view === 'matrix' && <MatrixView paper={paper} />}
               {view === 'hypotheses' && <HypothesesView paper={paper} />}
               {view === 'experiments' && <ExperimentsView paper={paper} />}
               {view === 'diagrams' && <DiagramsView paper={paper} />}
