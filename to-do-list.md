@@ -25,7 +25,7 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 ## Follow up & act
 
 - [x] **12. Follow-up board** (M) — Tasks/questions attached to claims with status, priority and notes.
-- [ ] **13. Auto-extracted open questions** (S–M) — Mine limitations/future-work into reviewable follow-up candidates.
+- [x] **13. Auto-extracted open questions** (S–M) — Mine limitations/future-work into reviewable follow-up candidates.
 - [ ] **14. Hypothesis tracker across papers** (M) — Aggregate hypothesis status across the corpus into a supported/contested/open timeline with counter-evidence.
 - [ ] **15. Cross-paper synthesis builder** (L) — Select N papers → stored synthesis: related-work narrative, comparison table, combined diagram.
 - [ ] **16. Reading progress & triage inbox** (S–M) — Unread/in-progress/done, last position, priority and "why read"; new Library facets.
@@ -64,3 +64,4 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 | 10 | What it does NOT show | `1c04035` | Three-column view separating stated author caveats, deterministic setup flags (baseline/dataset/budget/reproducibility/evidence links) and personal critique persisted as annotations |
 | 11 | Reproducibility checklist | `10f34cb` | Ten-check scored card per experiment (dataset, baseline, metrics, conditions, compute, seed, hyperparameters, code, steps, linked results), overall signal bar and detected artifact links |
 | 12 | Follow-up board | `e52a2f2` | New persisted `FollowUp` model and CRUD API; three-column open/in-progress/done board with priority, anchors, notes, tags, claim-derived suggestions and JSON/Markdown export |
+| 13 | Open questions | `4b361e5` | New deterministic `questions` extractor + `OpenQuestion` model and `GET /api/papers/{id}/open-questions`; mines limitation/future-work/discussion/conclusion sections, caveats, unresolved claims and notes with cue/confidence/source; review UI with editable suggestions, filters, selection and promote-to-followup |
