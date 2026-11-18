@@ -100,6 +100,7 @@ const PLAIN_LABELS: Record<string, string> = {
   'Triage inbox': 'Reading queue',
   'Citation graph': 'Who builds on whom',
   Glossary: 'Plain-language terms',
+  Projects: 'Reading projects',
   'Reading queue': 'What to read next',
   'Synthesis': 'Bring the papers together',
   'Conflicts across papers': 'Where the evidence disagrees',

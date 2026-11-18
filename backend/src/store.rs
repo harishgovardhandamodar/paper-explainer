@@ -512,6 +512,177 @@ impl StoreHandle {
         self.flush()
     }
 
+    // -- Literature-review projects ------------------------------------------
+
+    pub fn projects(&self) -> AppResult<Vec<Project>> {
+        let store = self.read()?;
+        let mut list = store.projects.clone();
+        list.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+        Ok(list)
+    }
+
+    pub fn get_project(&self, id: &str) -> AppResult<Project> {
+        self.read()?.projects.iter().find(|p| p.id == id).cloned()
+            .ok_or_else(|| AppError::NotFound(format!("project '{id}'")))
+    }
+
+    fn resolve_project_papers(&self, ids: &[String]) -> AppResult<Vec<String>> {
+        let store = self.read()?;
+        let mut unique = Vec::new();
+        for id in ids {
+            if !unique.contains(id) { unique.push(id.clone()); }
+        }
+        for id in &unique {
+            if store.find_paper(id).is_none() {
+                return Err(AppError::NotFound(format!("paper '{id}'")));
+            }
+        }
+        Ok(unique)
+    }
+
+    pub fn create_project(&self, req: CreateProject) -> AppResult<Project> {
+        let name = req.name.trim().to_string();
+        if name.is_empty() { return Err(AppError::BadRequest("project name cannot be empty".into())); }
+        let paper_ids = self.resolve_project_papers(&req.paper_ids)?;
+        let now = Utc::now();
+        let project = Project {
+            id: make_id("project", &name),
+            name,
+            description: req.description.unwrap_or_default().trim().to_string(),
+            paper_ids,
+            notes: req.notes.unwrap_or_default(),
+            tags: req.tags,
+            follow_ups: Vec::new(),
+            created_at: now,
+            updated_at: now,
+        };
+        {
+            let mut store = self.write()?;
+            if store.projects.iter().any(|p| p.id == project.id) {
+                return Err(AppError::BadRequest(format!("a project named '{}' already exists", project.name)));
+            }
+            store.projects.push(project.clone());
+        }
+        self.flush()?;
+        Ok(project)
+    }
+
+    pub fn update_project(&self, id: &str, req: UpdateProject) -> AppResult<Project> {
+        if let Some(name) = &req.name {
+            if name.trim().is_empty() { return Err(AppError::BadRequest("project name cannot be empty".into())); }
+        }
+        let paper_ids = match &req.paper_ids {
+            Some(ids) => Some(self.resolve_project_papers(ids)?),
+            None => None,
+        };
+        let updated = {
+            let mut store = self.write()?;
+            let project = store.projects.iter_mut().find(|p| p.id == id)
+                .ok_or_else(|| AppError::NotFound(format!("project '{id}'")))?;
+            if let Some(name) = req.name { project.name = name.trim().to_string(); }
+            if let Some(description) = req.description { project.description = description; }
+            if let Some(ids) = paper_ids { project.paper_ids = ids; }
+            if let Some(notes) = req.notes { project.notes = notes; }
+            if let Some(tags) = req.tags { project.tags = tags; }
+            project.updated_at = Utc::now();
+            project.clone()
+        };
+        self.flush()?;
+        Ok(updated)
+    }
+
+    pub fn delete_project(&self, id: &str) -> AppResult<()> {
+        {
+            let mut store = self.write()?;
+            let before = store.projects.len();
+            store.projects.retain(|p| p.id != id);
+            if store.projects.len() == before {
+                return Err(AppError::NotFound(format!("project '{id}'")));
+            }
+        }
+        self.flush()
+    }
+
+    fn mutate_project_follow_ups(
+        &self, project_id: &str,
+        f: impl FnOnce(&mut Vec<ProjectFollowUp>) -> AppResult<ProjectFollowUp>,
+    ) -> AppResult<ProjectFollowUp> {
+        let result = {
+            let mut store = self.write()?;
+            let project = store.projects.iter_mut().find(|p| p.id == project_id)
+                .ok_or_else(|| AppError::NotFound(format!("project '{project_id}'")))?;
+            let result = f(&mut project.follow_ups)?;
+            project.updated_at = Utc::now();
+            result
+        };
+        self.flush()?;
+        Ok(result)
+    }
+
+    pub fn add_project_follow_up(
+        &self, project_id: &str, req: CreateProjectFollowUp,
+    ) -> AppResult<ProjectFollowUp> {
+        let title = req.title.trim().to_string();
+        if title.is_empty() { return Err(AppError::BadRequest("follow-up title cannot be empty".into())); }
+        self.mutate_project_follow_ups(project_id, move |list| {
+            let task = ProjectFollowUp {
+                id: make_id("task", &format!("{project_id}:{title}:{}", list.len())),
+                title,
+                notes: req.notes.unwrap_or_default(),
+                done: false,
+                paper_id: req.paper_id,
+                created_at: Utc::now(),
+            };
+            list.push(task.clone());
+            Ok(task)
+        })
+    }
+
+    pub fn update_project_follow_up(
+        &self, project_id: &str, task_id: &str, req: UpdateProjectFollowUp,
+    ) -> AppResult<ProjectFollowUp> {
+        if let Some(title) = &req.title {
+            if title.trim().is_empty() { return Err(AppError::BadRequest("follow-up title cannot be empty".into())); }
+        }
+        self.mutate_project_follow_ups(project_id, move |list| {
+            let task = list.iter_mut().find(|t| t.id == task_id)
+                .ok_or_else(|| AppError::NotFound(format!("project follow-up '{task_id}'")))?;
+            if let Some(title) = req.title { task.title = title.trim().to_string(); }
+            if let Some(notes) = req.notes { task.notes = notes; }
+            if let Some(done) = req.done { task.done = done; }
+            if let Some(paper_id) = req.paper_id { task.paper_id = Some(paper_id); }
+            Ok(task.clone())
+        })
+    }
+
+    pub fn delete_project_follow_up(&self, project_id: &str, task_id: &str) -> AppResult<()> {
+        self.mutate_project_follow_ups(project_id, |list| {
+            let before = list.len();
+            list.retain(|t| t.id != task_id);
+            if list.len() == before {
+                return Err(AppError::NotFound(format!("project follow-up '{task_id}'")));
+            }
+            // No single task to return on delete; a sentinel is enough because
+            // the wrapper only needs to timestamp and flush the project.
+            Ok(ProjectFollowUp::default())
+        })?;
+        Ok(())
+    }
+
+    pub fn project_readout(&self, id: &str) -> AppResult<ProjectReadout> {
+        let store = self.read()?;
+        let project = store.projects.iter().find(|p| p.id == id)
+            .ok_or_else(|| AppError::NotFound(format!("project '{id}'")))?;
+        let papers = project.paper_ids.iter()
+            .filter_map(|pid| store.find_paper(pid))
+            .cloned().collect::<Vec<_>>();
+        Ok(ProjectReadout {
+            project_id: id.into(),
+            title: project.name.clone(),
+            markdown: crate::projects::readout(project, &papers),
+        })
+    }
+
     pub fn reset(&self) -> AppResult<()> {
         {
             let mut store = self.write()?;

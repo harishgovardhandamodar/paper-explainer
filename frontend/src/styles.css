@@ -626,6 +626,45 @@ a:hover { text-decoration: underline; }
 .gloss-paper-link { display: block; max-width: 100%; text-align: left; padding: 5px 9px; border: 1px solid var(--border); border-radius: 7px; font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gloss-mode-note { color: var(--text-faint); }
 
+/* ---------- Literature-review projects ---------- */
+.proj-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.btn.danger { color: var(--rose); border-color: var(--rose-border); }
+.btn.danger:hover { background: var(--rose-soft); }
+.proj-new { margin-bottom: 16px; }
+.proj-new h2 { font-family: var(--font-serif); font-size: 19px; margin: 0 0 14px; }
+.proj-picker { border: 1px solid var(--border); border-radius: 9px; padding: 8px; background: var(--bg); }
+.proj-picker-list { max-height: 190px; overflow: auto; margin: 7px 0; }
+.proj-picker-row { display: flex; align-items: center; gap: 8px; padding: 5px 4px; font-size: 12px; cursor: pointer; }
+.proj-picker-row:hover { background: var(--bg-subtle); }
+.proj-picker-row input { flex: 0 0 auto; }
+.proj-picker-row span:nth-child(2) { flex: 1; }
+.proj-layout { display: grid; grid-template-columns: minmax(210px, 260px) minmax(0, 1fr); gap: 14px; align-items: start; }
+.proj-list { display: grid; gap: 7px; }
+.proj-list-item { display: grid; gap: 3px; text-align: left; width: 100%; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-elevated); padding: 10px 12px; cursor: pointer; color: var(--text); }
+.proj-list-item:hover { border-color: var(--border-strong); }
+.proj-list-item.active { border-color: var(--accent); background: var(--accent-soft); }
+.proj-list-name { font-family: var(--font-serif); font-size: 14px; font-weight: 700; }
+.proj-detail { display: grid; gap: 12px; min-width: 0; }
+.proj-header { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.proj-header h2 { font-family: var(--font-serif); font-size: 20px; margin: 0 0 5px; }
+.proj-header p { margin: 0 0 9px; font-size: 12.5px; line-height: 1.5; }
+.proj-edit .field { margin-bottom: 10px; }
+.proj-section { padding: 14px 16px; }
+.proj-section h3 { font-family: var(--font-serif); font-size: 15px; margin: 0 0 10px; }
+.proj-section textarea { width: 100%; min-height: 110px; resize: vertical; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: 9px; background: var(--bg); color: var(--text); font-size: 12.5px; line-height: 1.6; }
+.proj-papers { display: grid; gap: 6px; }
+.proj-paper { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 12.5px; }
+.proj-tasks { display: grid; gap: 6px; margin-bottom: 10px; }
+.proj-task { display: flex; align-items: flex-start; gap: 9px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+.proj-task.done { opacity: .6; }
+.proj-task.done .proj-task-title { text-decoration: line-through; }
+.proj-task-title { font-size: 12.5px; font-weight: 600; }
+.proj-add-task { display: flex; gap: 6px; flex-wrap: wrap; }
+.proj-add-task input, .proj-add-task select { flex: 1 1 160px; min-width: 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 12px; }
+.readout-dialog { width: min(860px, 100%); }
+.readout-actions { display: flex; gap: 7px; margin-bottom: 10px; }
+.readout-preview { margin: 0; max-height: 60vh; overflow: auto; padding: 14px; border: 1px solid var(--border); border-radius: 9px; background: var(--bg-subtle); font-size: 11.5px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+
 /* ---------- Reading triage ---------- */
 .facet-subhead { font-size: 10px; text-transform: uppercase; letter-spacing: .09em; font-weight: 700; color: var(--text-faint); padding: 10px 2px 2px; border-top: 1px solid var(--border); margin-top: 8px; }
 .triage-stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
@@ -1150,6 +1189,7 @@ a:hover { text-decoration: underline; }
   .mx-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .lim-grid { grid-template-columns: 1fr; }
   .sy-layout { grid-template-columns: 1fr; }
+  .proj-layout { grid-template-columns: 1fr; }
   .sy-picker { position: static; }
   .ht-cluster-counts { flex: 1 1 100%; text-align: left; }
   .oq-card-body { padding-left: 15px; }

@@ -12,6 +12,7 @@ pub mod llm;
 pub mod pdf;
 pub mod models;
 pub mod parse;
+pub mod projects;
 pub mod questions;
 pub mod seed;
 pub mod store;
@@ -55,6 +56,11 @@ pub fn build_router(state: api::ApiState, dist: &Path) -> Router {
         .route("/api/syntheses/preview", post(api::preview_synthesis))
         .route("/api/syntheses/{id}", get(api::get_synthesis).put(api::update_synthesis).delete(api::delete_synthesis))
         .route("/api/syntheses/{id}/refresh", post(api::refresh_synthesis))
+        .route("/api/projects", get(api::list_projects).post(api::create_project))
+        .route("/api/projects/{id}", get(api::get_project).put(api::update_project).delete(api::delete_project))
+        .route("/api/projects/{id}/export", get(api::project_readout))
+        .route("/api/projects/{id}/followups", post(api::add_project_follow_up))
+        .route("/api/projects/{id}/followups/{task_id}", put(api::update_project_follow_up).delete(api::delete_project_follow_up))
         .route("/api/graph", get(api::get_graph))
         .route("/api/graph/mermaid", get(api::get_graph_mermaid))
         .route("/api/graph/edges", post(api::add_edge))

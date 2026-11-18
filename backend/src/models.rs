@@ -25,6 +25,8 @@ pub struct Store {
     pub syntheses: Vec<Synthesis>,
     /// Per-paper reading triage, keyed by `paper_id` in practice.
     pub reading_states: Vec<ReadingState>,
+    /// Named literature-review workspaces with their own notes and tasks.
+    pub projects: Vec<Project>,
 }
 
 impl Store {
@@ -32,7 +34,7 @@ impl Store {
         Self {
             version: 1, papers: Vec::new(), graph: KnowledgeGraph::default(),
             custom_edges: Vec::new(), annotations: Vec::new(), follow_ups: Vec::new(),
-            syntheses: Vec::new(), reading_states: Vec::new(),
+            syntheses: Vec::new(), reading_states: Vec::new(), projects: Vec::new(),
         }
     }
 
@@ -721,6 +723,105 @@ pub struct UpdateFollowUp {
     pub status: Option<FollowUpStatus>,
     pub priority: Option<FollowUpPriority>,
     pub tags: Option<Vec<String>>,
+}
+
+// ---------------------------------------------------------------------------
+// Literature-review projects
+// ---------------------------------------------------------------------------
+
+/// A named workspace grouping papers for one reading project or literature
+/// review, with its own notes, follow-up tasks and an exportable readout.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Project {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub paper_ids: Vec<String>,
+    /// Free-form notes for the project as a whole (markdown encouraged).
+    pub notes: String,
+    pub tags: Vec<String>,
+    pub follow_ups: Vec<ProjectFollowUp>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl Default for Project {
+    fn default() -> Self {
+        let now = Utc::now();
+        Self {
+            id: String::new(), name: String::new(), description: String::new(),
+            paper_ids: Vec::new(), notes: String::new(), tags: Vec::new(),
+            follow_ups: Vec::new(), created_at: now, updated_at: now,
+        }
+    }
+}
+
+/// A task scoped to a project rather than to one paper's extraction.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ProjectFollowUp {
+    pub id: String,
+    pub title: String,
+    pub notes: String,
+    pub done: bool,
+    /// Optional paper within the project that this task refers to.
+    pub paper_id: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+impl Default for ProjectFollowUp {
+    fn default() -> Self {
+        Self {
+            id: String::new(), title: String::new(), notes: String::new(),
+            done: false, paper_id: None, created_at: Utc::now(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct CreateProject {
+    pub name: String,
+    pub description: Option<String>,
+    pub paper_ids: Vec<String>,
+    pub notes: Option<String>,
+    pub tags: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct UpdateProject {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub paper_ids: Option<Vec<String>>,
+    pub notes: Option<String>,
+    pub tags: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct CreateProjectFollowUp {
+    pub title: String,
+    pub notes: Option<String>,
+    pub paper_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct UpdateProjectFollowUp {
+    pub title: Option<String>,
+    pub notes: Option<String>,
+    pub done: Option<bool>,
+    pub paper_id: Option<String>,
+}
+
+/// Rendered markdown readout for a project.
+#[derive(Debug, Clone, Serialize)]
+pub struct ProjectReadout {
+    pub project_id: String,
+    pub title: String,
+    pub markdown: String,
 }
 
 // ---------------------------------------------------------------------------

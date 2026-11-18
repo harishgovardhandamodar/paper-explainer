@@ -288,6 +288,63 @@ export interface UpdateSynthesis {
   notes?: string | null;
 }
 
+/** A named literature-review workspace. */
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  paper_ids: string[];
+  notes: string;
+  tags: string[];
+  follow_ups: ProjectFollowUp[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectFollowUp {
+  id: string;
+  title: string;
+  notes: string;
+  done: boolean;
+  paper_id: string | null;
+  created_at: string;
+}
+
+export interface CreateProject {
+  name: string;
+  description?: string;
+  paper_ids: string[];
+  notes?: string;
+  tags?: string[];
+}
+
+export interface UpdateProject {
+  name?: string;
+  description?: string;
+  paper_ids?: string[];
+  notes?: string;
+  tags?: string[];
+}
+
+export interface ProjectReadout {
+  project_id: string;
+  title: string;
+  markdown: string;
+}
+
+export interface CreateProjectFollowUp {
+  title: string;
+  notes?: string;
+  paper_id?: string | null;
+}
+
+export interface UpdateProjectFollowUp {
+  title?: string;
+  notes?: string;
+  done?: boolean;
+  paper_id?: string;
+}
+
 export interface EvidenceLink {
   id: string;
   claim: string;

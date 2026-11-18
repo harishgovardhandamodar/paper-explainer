@@ -1,8 +1,10 @@
 import type {
-  Annotation, CategoryDef, CitationEntry, CreateAnnotation, CreateFollowUp, FollowUp, GraphEdge, Health,
-  CreateSynthesis, GlossaryEntry, HypothesisTracker, IngestRequest, KnowledgeGraph, LibraryQuery, LibraryResponse,
-  LlmStatus, OpenQuestion, Paper, PaperReference, PaperSummary, ReadingState, ResolveResponse,
-  SearchResult, Stats, Synthesis, UpdateReadingState, UpdateSynthesis,
+  Annotation, CategoryDef, CitationEntry, CreateAnnotation, CreateFollowUp, CreateProject,
+  CreateProjectFollowUp, CreateSynthesis, FollowUp, GlossaryEntry, GraphEdge, Health,
+  HypothesisTracker, IngestRequest, KnowledgeGraph, LibraryQuery, LibraryResponse,
+  LlmStatus, OpenQuestion, Paper, PaperReference, PaperSummary, Project, ProjectFollowUp, ProjectReadout,
+  ReadingState, ResolveResponse, SearchResult, Stats, Synthesis, UpdateProject, UpdateProjectFollowUp,
+  UpdateReadingState, UpdateSynthesis,
 } from './types';
 
 const BASE = '/api';
@@ -77,6 +79,25 @@ export const api = {
     request<Synthesis>(`/syntheses/${encodeURIComponent(id)}/refresh`, { method: 'POST' }),
   deleteSynthesis: (id: string) =>
     request<void>(`/syntheses/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  projects: () => request<Project[]>('/projects'),
+  project: (id: string) => request<Project>(`/projects/${encodeURIComponent(id)}`),
+  createProject: (body: CreateProject) =>
+    request<Project>('/projects', { method: 'POST', body: JSON.stringify(body) }),
+  updateProject: (id: string, body: UpdateProject) =>
+    request<Project>(`/projects/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteProject: (id: string) =>
+    request<void>(`/projects/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  projectReadout: (id: string) =>
+    request<ProjectReadout>(`/projects/${encodeURIComponent(id)}/export`),
+  addProjectFollowUp: (id: string, body: CreateProjectFollowUp) =>
+    request<ProjectFollowUp>(`/projects/${encodeURIComponent(id)}/followups`,
+      { method: 'POST', body: JSON.stringify(body) }),
+  updateProjectFollowUp: (id: string, taskId: string, body: UpdateProjectFollowUp) =>
+    request<ProjectFollowUp>(`/projects/${encodeURIComponent(id)}/followups/${encodeURIComponent(taskId)}`,
+      { method: 'PUT', body: JSON.stringify(body) }),
+  deleteProjectFollowUp: (id: string, taskId: string) =>
+    request<void>(`/projects/${encodeURIComponent(id)}/followups/${encodeURIComponent(taskId)}`,
+      { method: 'DELETE' }),
   refreshPaper: (id: string) =>
     request<Paper>(`/papers/${encodeURIComponent(id)}/refresh`, { method: 'POST' }),
   llmStatus: () => request<LlmStatus>('/llm/status'),

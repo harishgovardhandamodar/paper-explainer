@@ -508,6 +508,63 @@ pub async fn delete_follow_up(
     Ok(StatusCode::NO_CONTENT)
 }
 
+// -- Literature-review projects ---------------------------------------------
+
+pub async fn list_projects(State(state): State<ApiState>) -> ApiResult<Json<Vec<Project>>> {
+    Ok(Json(state.store.projects()?))
+}
+
+pub async fn get_project(
+    State(state): State<ApiState>, Path(id): Path<String>,
+) -> ApiResult<Json<Project>> {
+    Ok(Json(state.store.get_project(&id)?))
+}
+
+pub async fn create_project(
+    State(state): State<ApiState>, Json(req): Json<CreateProject>,
+) -> ApiResult<(StatusCode, Json<Project>)> {
+    Ok((StatusCode::CREATED, Json(state.store.create_project(req)?)))
+}
+
+pub async fn update_project(
+    State(state): State<ApiState>, Path(id): Path<String>, Json(req): Json<UpdateProject>,
+) -> ApiResult<Json<Project>> {
+    Ok(Json(state.store.update_project(&id, req)?))
+}
+
+pub async fn delete_project(
+    State(state): State<ApiState>, Path(id): Path<String>,
+) -> ApiResult<StatusCode> {
+    state.store.delete_project(&id)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn project_readout(
+    State(state): State<ApiState>, Path(id): Path<String>,
+) -> ApiResult<Json<ProjectReadout>> {
+    Ok(Json(state.store.project_readout(&id)?))
+}
+
+pub async fn add_project_follow_up(
+    State(state): State<ApiState>, Path(id): Path<String>, Json(req): Json<CreateProjectFollowUp>,
+) -> ApiResult<Json<ProjectFollowUp>> {
+    Ok(Json(state.store.add_project_follow_up(&id, req)?))
+}
+
+pub async fn update_project_follow_up(
+    State(state): State<ApiState>, Path((id, task_id)): Path<(String, String)>,
+    Json(req): Json<UpdateProjectFollowUp>,
+) -> ApiResult<Json<ProjectFollowUp>> {
+    Ok(Json(state.store.update_project_follow_up(&id, &task_id, req)?))
+}
+
+pub async fn delete_project_follow_up(
+    State(state): State<ApiState>, Path((id, task_id)): Path<(String, String)>,
+) -> ApiResult<StatusCode> {
+    state.store.delete_project_follow_up(&id, &task_id)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 pub async fn reset(State(state): State<ApiState>) -> ApiResult<StatusCode> {
     state.store.reset()?;
     Ok(StatusCode::NO_CONTENT)
