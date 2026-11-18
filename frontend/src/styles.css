@@ -560,6 +560,44 @@ a:hover { text-decoration: underline; }
 .ai-preview { padding: 16px 20px; align-items: center; }
 .ai-preview-tldr { font-family: var(--font-serif); font-size: 16px; line-height: 1.5; margin-top: 6px; }
 
+/* ---------- Linear read ---------- */
+.read-progress { position: sticky; top: 0; z-index: 12; height: 3px; background: var(--border); margin: -30px -34px 24px; }
+.read-progress > div { height: 100%; background: var(--brand-gradient); transition: width .3s ease; }
+.read-shell { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 34px; align-items: start; }
+.read-story { min-width: 0; }
+.read-section { scroll-margin-top: 20px; padding: 4px 0 34px; margin-bottom: 30px; border-bottom: 1px solid var(--border); }
+.read-section:last-child { border-bottom: 0; margin-bottom: 0; }
+.read-section h2 { font-family: var(--font-serif); font-size: 30px; font-weight: 600; letter-spacing: -.01em; margin: 0 0 18px; }
+.read-step { font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+.read-lead { font-family: var(--font-serif); font-size: 19px; line-height: 1.65; color: var(--prose-text); margin: 0 0 18px; }
+.read-quote { margin: 0 0 18px; padding: 14px 18px; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 6px; font-family: var(--font-serif); font-size: 17px; line-height: 1.55; }
+.read-meta { font-size: 12px; color: var(--text-faint); }
+.read-card { border: 1px solid var(--border); background: var(--bg-elevated); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
+.read-card > p:first-of-type { margin-top: 10px; }
+.read-card p { font-size: 14px; line-height: 1.65; margin: 0 0 10px; color: var(--prose-text); }
+.read-alt { font-size: 13px !important; color: var(--text-muted) !important; }
+.read-result { padding-left: 14px; border-left: 2px solid var(--green); }
+.read-tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+.read-finding { font-size: 15px !important; font-weight: 600; color: var(--text) !important; }
+.read-evidence { font-family: var(--font-mono); font-size: 11.5px !important; color: var(--text-muted) !important; background: var(--bg-subtle); padding: 8px 10px; border-radius: 7px; }
+.read-caveat { color: var(--amber) !important; font-size: 13px !important; }
+.read-diagram { margin: 18px 0; }
+.read-list { padding-left: 20px; }
+.read-list li { margin-bottom: 10px; line-height: 1.6; }
+.read-end { display: flex; gap: 8px; margin-top: 18px; }
+.read-rail { position: sticky; top: 20px; }
+.read-rail-sticky { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-elevated); padding: 18px; max-height: calc(100vh - 70px); overflow-y: auto; }
+.read-rail-title { font-family: var(--font-serif); font-size: 19px; margin: 6px 0 12px; }
+.read-rail-nav { display: grid; gap: 2px; margin-bottom: 16px; }
+.read-rail-nav button { text-align: left; border: 0; background: transparent; color: var(--text-muted); font-size: 12px; padding: 6px 9px; border-radius: 7px; cursor: pointer; border-left: 2px solid transparent; }
+.read-rail-nav button:hover { background: var(--bg-subtle); }
+.read-rail-nav button.active { background: var(--accent-soft); color: var(--accent-strong); border-left-color: var(--accent); font-weight: 700; }
+.read-rail-evidence { border-top: 1px solid var(--border); padding-top: 14px; }
+.rail-item { padding: 10px 0; border-bottom: 1px solid var(--border); }
+.rail-item:last-child { border-bottom: 0; }
+.rail-item-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
+.rail-item-text { font-size: 11.5px; line-height: 1.55; color: var(--text-muted); }
+
 /* ---------- Focus / spotlight ---------- */
 .view-tools { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px; }
 .entity-card, .step, .card { transition: opacity .22s ease, filter .22s ease, box-shadow .22s ease; }
@@ -664,6 +702,8 @@ a:hover { text-decoration: underline; }
 .present-stage:fullscreen { background: radial-gradient(circle at 50% 30%, var(--bg-elevated), var(--bg)); }
 
 @media (max-width: 1180px) {
+  .read-shell { grid-template-columns: 1fr; }
+  .read-rail { display: none; }
   .lens-caption, .lens-label { display: none; }
   .lens-btn { padding: 6px 9px; }
   .design-body-row { grid-template-columns: minmax(0, 1fr); }

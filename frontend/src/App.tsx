@@ -8,6 +8,7 @@ import { CompareView } from './components/CompareView';
 import { DesignView } from './components/DesignView';
 import { ExportView } from './components/ExportView';
 import { PresentView } from './components/PresentView';
+import { ReadView } from './components/ReadView';
 import { relativeDate } from './components/ui';
 import { toggleTheme, useTheme } from './theme';
 import type { GraphEdge, KnowledgeGraph, LlmStatus, Paper, PaperSummary, SearchResult, Stats } from './types';
@@ -18,6 +19,7 @@ import {
 
 const NAV: { key: ViewKey; label: string; icon: string }[] = [
   { key: 'overview', label: 'Overview', icon: '⌂' },
+  { key: 'read', label: 'Read paper', icon: '¶' },
   { key: 'hypotheses', label: 'Hypotheses', icon: '◎' },
   { key: 'experiments', label: 'Experiments', icon: '⚗' },
   { key: 'diagrams', label: 'Diagrams', icon: '◇' },
@@ -295,6 +297,7 @@ export default function App() {
           {view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && paper && stats && (
             <>
               {view === 'overview' && <OverviewView paper={paper} stats={stats} onNavigate={setView} />}
+              {view === 'read' && <ReadView paper={paper} onNavigate={setView} />}
               {view === 'hypotheses' && <HypothesesView paper={paper} />}
               {view === 'experiments' && <ExperimentsView paper={paper} />}
               {view === 'diagrams' && <DiagramsView paper={paper} />}

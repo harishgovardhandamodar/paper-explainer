@@ -84,8 +84,10 @@ export function useAudience(): Audience {
 /** Audience-friendly name for a navigation label, section title or field name. */
 const PLAIN_LABELS: Record<string, string> = {
   Overview: 'Start here',
+  'Read paper': 'Read the story',
   Hypotheses: 'What they expected',
   'Claims under test': 'What they expected',
+  'What was claimed': 'What they expected',
   Experiments: 'How they tested it',
   Findings: 'What they found',
   'Key findings': 'What they found',
