@@ -11,6 +11,7 @@ pub mod parse;
 pub mod questions;
 pub mod seed;
 pub mod store;
+pub mod synthesis;
 pub mod tracker;
 pub mod util;
 
@@ -37,6 +38,10 @@ pub fn build_router(state: api::ApiState, dist: &Path) -> Router {
         .route("/api/followups", get(api::list_follow_ups).post(api::create_follow_up))
         .route("/api/followups/{id}", put(api::update_follow_up).delete(api::delete_follow_up))
         .route("/api/hypothesis-tracker", get(api::hypothesis_tracker))
+        .route("/api/syntheses", get(api::list_syntheses).post(api::create_synthesis))
+        .route("/api/syntheses/preview", post(api::preview_synthesis))
+        .route("/api/syntheses/{id}", get(api::get_synthesis).put(api::update_synthesis).delete(api::delete_synthesis))
+        .route("/api/syntheses/{id}/refresh", post(api::refresh_synthesis))
         .route("/api/graph", get(api::get_graph))
         .route("/api/graph/mermaid", get(api::get_graph_mermaid))
         .route("/api/graph/edges", post(api::add_edge))

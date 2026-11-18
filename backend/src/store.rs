@@ -333,6 +333,99 @@ impl StoreHandle {
         self.flush()
     }
 
+    // -- Cross-paper syntheses ------------------------------------------------
+
+    pub fn syntheses(&self) -> AppResult<Vec<Synthesis>> {
+        let store = self.read()?;
+        let mut list = store.syntheses.clone();
+        list.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+        Ok(list)
+    }
+
+    pub fn get_synthesis(&self, id: &str) -> AppResult<Synthesis> {
+        self.read()?.syntheses.iter().find(|s| s.id == id).cloned()
+            .ok_or_else(|| AppError::NotFound(format!("synthesis '{id}'")))
+    }
+
+    fn resolve_synthesis_papers(&self, req: &CreateSynthesis) -> AppResult<Vec<Paper>> {
+        if req.paper_ids.is_empty() {
+            return Err(AppError::BadRequest("select at least one paper".into()));
+        }
+        if req.paper_ids.len() > crate::synthesis::MAX_PAPERS {
+            return Err(AppError::BadRequest(format!("a synthesis can combine at most {} papers", crate::synthesis::MAX_PAPERS)));
+        }
+        let mut unique = Vec::new();
+        for id in &req.paper_ids {
+            if !unique.contains(id) { unique.push(id.clone()); }
+        }
+        let store = self.read()?;
+        unique.iter().map(|id| store.find_paper(id)
+            .cloned().ok_or_else(|| AppError::NotFound(format!("paper '{id}'"))))
+            .collect::<AppResult<Vec<_>>>()
+    }
+
+    /// Generate without persisting — used by the UI preview step.
+    pub fn preview_synthesis(&self, req: CreateSynthesis) -> AppResult<Synthesis> {
+        let papers = self.resolve_synthesis_papers(&req)?;
+        Ok(crate::synthesis::build(&papers, req.title, req.notes))
+    }
+
+    pub fn add_synthesis(&self, req: CreateSynthesis) -> AppResult<Synthesis> {
+        let papers = self.resolve_synthesis_papers(&req)?;
+        let syn = crate::synthesis::build(&papers, req.title, req.notes);
+        { self.write()?.syntheses.push(syn.clone()); }
+        self.flush()?;
+        Ok(syn)
+    }
+
+    pub fn update_synthesis(&self, id: &str, req: UpdateSynthesis) -> AppResult<Synthesis> {
+        let updated = {
+            let mut store = self.write()?;
+            let syn = store.syntheses.iter_mut().find(|s| s.id == id)
+                .ok_or_else(|| AppError::NotFound(format!("synthesis '{id}'")))?;
+            if let Some(title) = req.title {
+                let title = title.trim().to_string();
+                if title.is_empty() { return Err(AppError::BadRequest("title cannot be empty".into())); }
+                syn.title = title;
+            }
+            if let Some(notes) = req.notes { syn.notes = notes; }
+            syn.updated_at = Utc::now();
+            syn.clone()
+        };
+        self.flush()?;
+        Ok(updated)
+    }
+
+    pub fn refresh_synthesis(&self, id: &str) -> AppResult<Synthesis> {
+        let next = {
+            let store = self.read()?;
+            let syn = store.syntheses.iter().find(|s| s.id == id).cloned()
+                .ok_or_else(|| AppError::NotFound(format!("synthesis '{id}'")))?;
+            let papers = syn.paper_ids.iter().map(|pid| store.find_paper(pid).cloned())
+                .collect::<Option<Vec<_>>>()
+                .ok_or_else(|| AppError::BadRequest("a source paper no longer exists".into()))?;
+            crate::synthesis::refresh(&syn, &papers)
+        };
+        {
+            let mut store = self.write()?;
+            if let Some(syn) = store.syntheses.iter_mut().find(|s| s.id == id) { *syn = next.clone(); }
+        }
+        self.flush()?;
+        Ok(next)
+    }
+
+    pub fn delete_synthesis(&self, id: &str) -> AppResult<()> {
+        {
+            let mut store = self.write()?;
+            let before = store.syntheses.len();
+            store.syntheses.retain(|s| s.id != id);
+            if store.syntheses.len() == before {
+                return Err(AppError::NotFound(format!("synthesis '{id}'")));
+            }
+        }
+        self.flush()
+    }
+
     pub fn reset(&self) -> AppResult<()> {
         {
             let mut store = self.write()?;

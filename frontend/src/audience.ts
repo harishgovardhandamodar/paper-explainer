@@ -96,6 +96,8 @@ const PLAIN_LABELS: Record<string, string> = {
   'Follow-ups': 'Next steps',
   'Open questions': 'What remains unanswered',
   'Hypothesis tracker': 'Who agrees with whom',
+  'Synthesis builder': 'Write the bridge',
+  'Synthesis': 'Bring the papers together',
   'Conflicts across papers': 'Where the evidence disagrees',
   'What this paper does NOT show': 'What this paper cannot tell you',
   'Claim matrix': 'Claim checker',

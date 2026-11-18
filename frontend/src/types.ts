@@ -220,6 +220,35 @@ export interface OpenQuestion {
   target: string;
 }
 
+export interface SynthesisRow {
+  dimension: string;
+  values: string[];
+}
+
+export interface Synthesis {
+  id: string;
+  title: string;
+  paper_ids: string[];
+  paper_titles: string[];
+  created_at: string;
+  updated_at: string;
+  narrative: string;
+  comparison: SynthesisRow[];
+  diagram: string;
+  notes: string;
+}
+
+export interface CreateSynthesis {
+  paper_ids: string[];
+  title: string | null;
+  notes: string | null;
+}
+
+export interface UpdateSynthesis {
+  title?: string | null;
+  notes?: string | null;
+}
+
 export interface EvidenceLink {
   id: string;
   claim: string;

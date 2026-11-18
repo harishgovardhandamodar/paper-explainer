@@ -16,6 +16,7 @@ import { OpenQuestionsView } from './components/OpenQuestionsView';
 import { PresentView } from './components/PresentView';
 import { ReadView } from './components/ReadView';
 import { ReproView } from './components/ReproView';
+import { SynthesisView } from './components/SynthesisView';
 import { SourceView } from './components/SourceView';
 import { relativeDate } from './components/ui';
 import { toggleTheme, useTheme } from './theme';
@@ -36,6 +37,7 @@ const NAV: { key: ViewKey; label: string; icon: string }[] = [
   { key: 'followups', label: 'Follow-ups', icon: '☑' },
   { key: 'openquestions', label: 'Open questions', icon: '?' },
   { key: 'tracker', label: 'Hypothesis tracker', icon: '⇄' },
+  { key: 'synthesis', label: 'Synthesis builder', icon: '≋' },
   { key: 'hypotheses', label: 'Hypotheses', icon: '◎' },
   { key: 'experiments', label: 'Experiments', icon: '⚗' },
   { key: 'diagrams', label: 'Diagrams', icon: '◇' },
@@ -279,7 +281,7 @@ export default function App() {
               </div>
             )}
           </div>
-          {paper && view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && view !== 'tracker' && <>
+          {paper && view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && view !== 'tracker' && view !== 'synthesis' && <>
             <a className="btn sm" href={api.exportUrl(paper.id)} target="_blank" rel="noreferrer">Export MD</a>
             <button className="btn sm" onClick={handleRefresh} title="Re-import from source">↻</button>
           </>}
@@ -311,9 +313,12 @@ export default function App() {
           {view === 'tracker' && (
             <HypothesisTrackerView onOpen={(id) => void openPaper(id)} onNotify={notify} />
           )}
+          {view === 'synthesis' && (
+            <SynthesisView papers={papers} onOpen={(id) => void openPaper(id)} onNotify={notify} />
+          )}
           {view === 'export' && paper && <ExportView paper={paper} onNotify={notify} />}
           {view === 'export' && !paper && <div className="empty"><div className="empty-icon">◌</div><strong>No paper selected</strong></div>}
-          {view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && view !== 'tracker' && paper && stats && (
+          {view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && view !== 'tracker' && view !== 'synthesis' && paper && stats && (
             <>
               {view === 'overview' && <OverviewView paper={paper} stats={stats} onNavigate={setView} />}
               {view === 'read' && <ReadView paper={paper} onNavigate={setView} />}
@@ -332,7 +337,7 @@ export default function App() {
               {view === 'graph' && <GraphView graph={graph} activePaperId={paper.id} onAddEdge={addEdge} />}
             </>
           )}
-          {view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && view !== 'tracker' && !paper && (
+          {view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && view !== 'tracker' && view !== 'synthesis' && !paper && (
             <div className="empty"><div className="empty-icon">◌</div><strong>No paper selected</strong>
               <div style={{ marginTop: 10 }}><button className="btn primary" onClick={() => setDialog(true)}>Add your first paper</button></div>
             </div>

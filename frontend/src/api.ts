@@ -1,7 +1,7 @@
 import type {
   Annotation, CategoryDef, CreateAnnotation, CreateFollowUp, FollowUp, GraphEdge, Health,
-  HypothesisTracker, IngestRequest, KnowledgeGraph, LibraryQuery, LibraryResponse, LlmStatus,
-  OpenQuestion, Paper, PaperSummary, SearchResult, Stats,
+  CreateSynthesis, HypothesisTracker, IngestRequest, KnowledgeGraph, LibraryQuery, LibraryResponse,
+  LlmStatus, OpenQuestion, Paper, PaperSummary, SearchResult, Stats, Synthesis, UpdateSynthesis,
 } from './types';
 
 const BASE = '/api';
@@ -44,6 +44,18 @@ export const api = {
   openQuestions: (id: string) =>
     request<OpenQuestion[]>(`/papers/${encodeURIComponent(id)}/open-questions`),
   hypothesisTracker: () => request<HypothesisTracker>('/hypothesis-tracker'),
+  syntheses: () => request<Synthesis[]>('/syntheses'),
+  synthesis: (id: string) => request<Synthesis>(`/syntheses/${encodeURIComponent(id)}`),
+  previewSynthesis: (body: CreateSynthesis) =>
+    request<Synthesis>('/syntheses/preview', { method: 'POST', body: JSON.stringify(body) }),
+  createSynthesis: (body: CreateSynthesis) =>
+    request<Synthesis>('/syntheses', { method: 'POST', body: JSON.stringify(body) }),
+  updateSynthesis: (id: string, body: UpdateSynthesis) =>
+    request<Synthesis>(`/syntheses/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(body) }),
+  refreshSynthesis: (id: string) =>
+    request<Synthesis>(`/syntheses/${encodeURIComponent(id)}/refresh`, { method: 'POST' }),
+  deleteSynthesis: (id: string) =>
+    request<void>(`/syntheses/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   refreshPaper: (id: string) =>
     request<Paper>(`/papers/${encodeURIComponent(id)}/refresh`, { method: 'POST' }),
   llmStatus: () => request<LlmStatus>('/llm/status'),

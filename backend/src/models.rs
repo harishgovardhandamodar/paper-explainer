@@ -21,6 +21,8 @@ pub struct Store {
     pub annotations: Vec<Annotation>,
     /// Questions and tasks attached to claims, with triage state.
     pub follow_ups: Vec<FollowUp>,
+    /// Stored cross-paper syntheses (related work, comparison, diagram).
+    pub syntheses: Vec<Synthesis>,
 }
 
 impl Store {
@@ -28,6 +30,7 @@ impl Store {
         Self {
             version: 1, papers: Vec::new(), graph: KnowledgeGraph::default(),
             custom_edges: Vec::new(), annotations: Vec::new(), follow_ups: Vec::new(),
+            syntheses: Vec::new(),
         }
     }
 
@@ -744,6 +747,51 @@ impl Default for OpenQuestion {
             confidence: "low".into(), target: String::new(),
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// Cross-paper synthesis
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SynthesisRow {
+    /// Comparison dimension (Year, Datasets, Key finding, …).
+    pub dimension: String,
+    /// One value per paper, aligned with `Synthesis::paper_ids`.
+    pub values: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Synthesis {
+    pub id: String,
+    pub title: String,
+    pub paper_ids: Vec<String>,
+    pub paper_titles: Vec<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    /// Generated related-work narrative (deterministic).
+    pub narrative: String,
+    /// Generated comparison matrix.
+    pub comparison: Vec<SynthesisRow>,
+    /// Generated Mermaid diagram linking papers through shared themes.
+    pub diagram: String,
+    /// Free-form user notes, editable and persisted.
+    pub notes: String,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct CreateSynthesis {
+    pub paper_ids: Vec<String>,
+    pub title: Option<String>,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct UpdateSynthesis {
+    pub title: Option<String>,
+    pub notes: Option<String>,
 }
 
 // ---------------------------------------------------------------------------

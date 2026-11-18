@@ -333,6 +333,49 @@ pub async fn hypothesis_tracker(State(state): State<ApiState>) -> ApiResult<Json
     Ok(Json(crate::tracker::build_tracker(&store.papers)))
 }
 
+// -- Cross-paper syntheses ---------------------------------------------------
+
+pub async fn list_syntheses(State(state): State<ApiState>) -> ApiResult<Json<Vec<Synthesis>>> {
+    Ok(Json(state.store.syntheses()?))
+}
+
+pub async fn get_synthesis(
+    State(state): State<ApiState>, Path(id): Path<String>,
+) -> ApiResult<Json<Synthesis>> {
+    Ok(Json(state.store.get_synthesis(&id)?))
+}
+
+pub async fn preview_synthesis(
+    State(state): State<ApiState>, Json(req): Json<CreateSynthesis>,
+) -> ApiResult<Json<Synthesis>> {
+    Ok(Json(state.store.preview_synthesis(req)?))
+}
+
+pub async fn create_synthesis(
+    State(state): State<ApiState>, Json(req): Json<CreateSynthesis>,
+) -> ApiResult<(StatusCode, Json<Synthesis>)> {
+    Ok((StatusCode::CREATED, Json(state.store.add_synthesis(req)?)))
+}
+
+pub async fn update_synthesis(
+    State(state): State<ApiState>, Path(id): Path<String>, Json(req): Json<UpdateSynthesis>,
+) -> ApiResult<Json<Synthesis>> {
+    Ok(Json(state.store.update_synthesis(&id, req)?))
+}
+
+pub async fn refresh_synthesis(
+    State(state): State<ApiState>, Path(id): Path<String>,
+) -> ApiResult<Json<Synthesis>> {
+    Ok(Json(state.store.refresh_synthesis(&id)?))
+}
+
+pub async fn delete_synthesis(
+    State(state): State<ApiState>, Path(id): Path<String>,
+) -> ApiResult<StatusCode> {
+    state.store.delete_synthesis(&id)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 pub async fn create_follow_up(
     State(state): State<ApiState>, Json(req): Json<CreateFollowUp>,
 ) -> ApiResult<Json<FollowUp>> {
