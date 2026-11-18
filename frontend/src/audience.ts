@@ -90,6 +90,8 @@ const PLAIN_LABELS: Record<string, string> = {
   'Claims under test': 'What they expected',
   'Evidence panel': 'Where it says that',
   Annotations: 'Your notes',
+  'Limits & critique': 'What it cannot tell you',
+  'What this paper does NOT show': 'What this paper cannot tell you',
   'Claim matrix': 'Claim checker',
   'Claim–evidence matrix': 'What supports each claim',
   'What was claimed': 'What they expected',
