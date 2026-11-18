@@ -94,6 +94,7 @@ const PLAIN_LABELS: Record<string, string> = {
   Reproducibility: 'Could others repeat it?',
   'Follow-up board': 'Questions to chase',
   'Follow-ups': 'Next steps',
+  'Open questions': 'What remains unanswered',
   'What this paper does NOT show': 'What this paper cannot tell you',
   'Claim matrix': 'Claim checker',
   'Claim–evidence matrix': 'What supports each claim',

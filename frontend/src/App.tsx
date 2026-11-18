@@ -11,6 +11,7 @@ import { ExportView } from './components/ExportView';
 import { FollowUpsView } from './components/FollowUpsView';
 import { LimitsView } from './components/LimitsView';
 import { MatrixView } from './components/MatrixView';
+import { OpenQuestionsView } from './components/OpenQuestionsView';
 import { PresentView } from './components/PresentView';
 import { ReadView } from './components/ReadView';
 import { ReproView } from './components/ReproView';
@@ -32,6 +33,7 @@ const NAV: { key: ViewKey; label: string; icon: string }[] = [
   { key: 'limits', label: 'Limits & critique', icon: '⚠' },
   { key: 'repro', label: 'Reproducibility', icon: '✓' },
   { key: 'followups', label: 'Follow-ups', icon: '☑' },
+  { key: 'openquestions', label: 'Open questions', icon: '?' },
   { key: 'hypotheses', label: 'Hypotheses', icon: '◎' },
   { key: 'experiments', label: 'Experiments', icon: '⚗' },
   { key: 'diagrams', label: 'Diagrams', icon: '◇' },
@@ -316,6 +318,7 @@ export default function App() {
               {view === 'limits' && <LimitsView paper={paper} onNotify={notify} />}
               {view === 'repro' && <ReproView paper={paper} onNavigate={setView} />}
               {view === 'followups' && <FollowUpsView paper={paper} onNotify={notify} />}
+              {view === 'openquestions' && <OpenQuestionsView paper={paper} onNotify={notify} onGoToBoard={() => setView('followups')} />}
               {view === 'hypotheses' && <HypothesesView paper={paper} />}
               {view === 'experiments' && <ExperimentsView paper={paper} />}
               {view === 'diagrams' && <DiagramsView paper={paper} />}

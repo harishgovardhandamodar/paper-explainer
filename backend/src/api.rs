@@ -52,6 +52,15 @@ pub async fn get_paper(
     Ok(Json(state.store.get_paper(&id)?))
 }
 
+/// Deterministically mined, reviewable open-question candidates for a paper.
+/// Nothing is persisted here; the UI decides which candidates become follow-ups.
+pub async fn open_questions(
+    State(state): State<ApiState>, Path(id): Path<String>,
+) -> ApiResult<Json<Vec<OpenQuestion>>> {
+    let paper = state.store.get_paper(&id)?;
+    Ok(Json(crate::questions::extract(&paper)))
+}
+
 pub async fn add_paper(
     State(state): State<ApiState>, Json(req): Json<IngestRequest>,
 ) -> ApiResult<(StatusCode, Json<Paper>)> {

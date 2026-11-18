@@ -209,6 +209,17 @@ export interface CreateFollowUp {
   tags: string[];
 }
 
+export interface OpenQuestion {
+  id: string;
+  paper_id: string;
+  source: string;
+  cue: string;
+  context: string;
+  text: string;
+  confidence: string;
+  target: string;
+}
+
 export interface GraphNode {
   id: string;
   kind: NodeKind;

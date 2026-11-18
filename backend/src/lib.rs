@@ -8,6 +8,7 @@ pub mod ingest;
 pub mod llm;
 pub mod models;
 pub mod parse;
+pub mod questions;
 pub mod seed;
 pub mod store;
 pub mod util;
@@ -29,6 +30,7 @@ pub fn build_router(state: api::ApiState, dist: &Path) -> Router {
         .route("/api/papers/{id}/enhance", post(api::enhance_paper).delete(api::clear_enhancement))
         .route("/api/papers/{id}/export", get(api::export_markdown))
         .route("/api/papers/{id}/export/{format}", get(api::export_format))
+        .route("/api/papers/{id}/open-questions", get(api::open_questions))
         .route("/api/annotations", get(api::list_annotations).post(api::create_annotation))
         .route("/api/annotations/{id}", put(api::update_annotation).delete(api::delete_annotation))
         .route("/api/followups", get(api::list_follow_ups).post(api::create_follow_up))

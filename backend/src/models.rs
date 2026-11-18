@@ -651,6 +651,43 @@ pub struct UpdateFollowUp {
 }
 
 // ---------------------------------------------------------------------------
+// Auto-extracted open questions
+// ---------------------------------------------------------------------------
+
+/// A candidate question mined from limitations, future-work, discussion and
+/// conclusion text (plus caveats and unresolved claims). Deterministic and
+/// reviewable: the UI lets a person edit the text before promoting it to a
+/// persisted `FollowUp`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct OpenQuestion {
+    pub id: String,
+    pub paper_id: String,
+    /// Where the candidate came from: a section heading, a finding id, etc.
+    pub source: String,
+    /// The cue that triggered extraction (limitation, future_work, …).
+    pub cue: String,
+    /// The source sentence the suggestion is based on.
+    pub context: String,
+    /// Reviewable suggested question text.
+    pub text: String,
+    /// high / medium / low — strength of the cue, not a truth judgement.
+    pub confidence: String,
+    /// Suggested anchor entity id (finding / hypothesis), if any.
+    pub target: String,
+}
+
+impl Default for OpenQuestion {
+    fn default() -> Self {
+        Self {
+            id: String::new(), paper_id: String::new(), source: String::new(),
+            cue: String::new(), context: String::new(), text: String::new(),
+            confidence: "low".into(), target: String::new(),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // API request / response types
 // ---------------------------------------------------------------------------
 

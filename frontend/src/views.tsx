@@ -11,7 +11,7 @@ import type {
   NodeKind, Paper, PaperSummary, Stats,
 } from './types';
 
-export type ViewKey = 'overview' | 'read' | 'source' | 'annotations' | 'matrix' | 'limits' | 'repro' | 'followups' | 'hypotheses' | 'experiments' | 'diagrams' | 'workflows' | 'findings' | 'graph' | 'library' | 'design' | 'ai' | 'present' | 'compare' | 'export';
+export type ViewKey = 'overview' | 'read' | 'source' | 'annotations' | 'matrix' | 'limits' | 'repro' | 'followups' | 'openquestions' | 'hypotheses' | 'experiments' | 'diagrams' | 'workflows' | 'findings' | 'graph' | 'library' | 'design' | 'ai' | 'present' | 'compare' | 'export';
 
 /* -------------------------------- Overview -------------------------------- */
 export function OverviewView({ paper, stats, onNavigate }: {
