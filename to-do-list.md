@@ -11,7 +11,7 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 - [x] **2. Audience lens** (M) — Researcher / Engineer / Executive / Student switch that changes depth and vocabulary across views; deterministic text stays the baseline.
 - [x] **3. Compare-papers view** (M) — Side-by-side 2–N comparison of question, method, datasets/metrics, results and caveats, plus graph focus.
 - [x] **4. One-pager + multi-format export** (S–M) — Designed 1-page HTML/PDF brief, self-contained shareable readout, BibTeX, CSV/JSON findings, Marp/Slidev deck.
-- [ ] **5. Focus / spotlight mode** (S) — Dim everything but the selected claim + evidence; fullscreen a single Mermaid diagram; presenter timer.
+- [x] **5. Focus / spotlight mode** (S) — Dim everything but the selected claim + evidence; fullscreen a single Mermaid diagram; presenter timer.
 
 ## Read & understand
 
@@ -56,3 +56,4 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 | 2 | Audience lens | `7c6fd7b` | Persisted Researcher/Engineer/Executive/Student switch in topbar; plain labels, collapsible raw evidence, student glossary; deterministic text unchanged |
 | 3 | Compare-papers view | `1a72e29` | 2–N picker, aligned dimension matrix with differences-only filter, shared-bridge list and focused force graph |
 | 4 | One-pager + multi-format export | `454d5be` | Self-contained print-ready HTML brief, BibTeX, findings CSV/JSON, Slidev/Marp deck; Rust formatters with 5 new unit tests; Export view with preview and share link |
+| 5 | Focus / spotlight mode | `dab7f3e` | Reusable spotlight controller in hypotheses, findings, steps and diagrams; dim-unselected, fullscreen diagram, count-up/countdown presenter timer, Esc to exit |
