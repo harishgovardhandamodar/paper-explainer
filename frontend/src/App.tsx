@@ -4,6 +4,7 @@ import { AddPaperDialog } from './components/AddPaperDialog';
 import { AiView } from './components/AiView';
 import { DesignView } from './components/DesignView';
 import { relativeDate } from './components/ui';
+import { toggleTheme, useTheme } from './theme';
 import type { GraphEdge, KnowledgeGraph, LlmStatus, Paper, PaperSummary, SearchResult, Stats } from './types';
 import {
   DiagramsView, ExperimentsView, FindingsView, GraphView, HypothesesView,
@@ -35,6 +36,7 @@ export default function App() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [toast, setToast] = useState<{ text: string; error?: boolean } | null>(null);
+  const theme = useTheme();
   const searchTimer = useRef<number | undefined>(undefined);
 
   const notify = useCallback((text: string, error = false) => {
@@ -235,6 +237,14 @@ export default function App() {
             <a className="btn sm" href={api.exportUrl(paper.id)} target="_blank" rel="noreferrer">Export MD</a>
             <button className="btn sm" onClick={handleRefresh} title="Re-import from source">↻</button>
           </>}
+          <button
+            className="btn sm ghost theme-toggle"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? '☀' : '☾'}
+          </button>
         </header>
 
         <div className="content">

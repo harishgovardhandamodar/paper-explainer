@@ -246,10 +246,10 @@ export function ForceGraph({ graph, selectedId, onSelect, highlightPaperId }: Pr
       >
         <defs>
           <marker id="pe-arrow" markerWidth="7" markerHeight="7" refX="9" refY="3.5" orient="auto">
-            <path d="M0,0 L7,3.5 L0,7 z" fill="#cbd2e1" />
+            <path d="M0,0 L7,3.5 L0,7 z" style={{ fill: 'var(--graph-arrow)' }} />
           </marker>
           <marker id="pe-arrow-hi" markerWidth="7" markerHeight="7" refX="9" refY="3.5" orient="auto">
-            <path d="M0,0 L7,3.5 L0,7 z" fill="#6366f1" />
+            <path d="M0,0 L7,3.5 L0,7 z" style={{ fill: 'var(--graph-hi)' }} />
           </marker>
         </defs>
         <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
@@ -261,7 +261,7 @@ export function ForceGraph({ graph, selectedId, onSelect, highlightPaperId }: Pr
                 key={e.data.id}
                 className="graph-edge"
                 x1={e.source.x} y1={e.source.y} x2={e.target.x} y2={e.target.y}
-                stroke={hit ? '#6366f1' : '#cbd2e1'}
+                style={{ stroke: hit ? 'var(--graph-hi)' : 'var(--graph-edge)' }}
                 strokeWidth={hit ? 2 : 1.1}
                 strokeOpacity={active ? 1 : 0.14}
                 markerEnd={hit ? 'url(#pe-arrow-hi)' : 'url(#pe-arrow)'}
@@ -288,7 +288,7 @@ export function ForceGraph({ graph, selectedId, onSelect, highlightPaperId }: Pr
                   r={n.r}
                   fill={NODE_COLORS[n.data.kind]}
                   fillOpacity={0.88}
-                  stroke={isSelected ? '#111827' : '#fff'}
+                  style={{ stroke: isSelected ? 'var(--graph-node-stroke-selected)' : 'var(--graph-node-stroke)' }}
                   strokeWidth={isSelected ? 2.5 : 1.5}
                 />
                 <text className="graph-node-label" textAnchor="middle" y={n.r + 13}>

@@ -221,6 +221,19 @@ curl http://localhost:8787/api/categories
 
 ---
 
+## Dark / light mode
+
+The theme toggle (☾ / ☀) sits at the right end of the top bar and is always available, even when the
+sidebar collapses on narrow screens. The first visit follows your OS `prefers-color-scheme`; after
+you toggle, the choice is saved in `localStorage` (`paper-explainer-theme`) and restored before React
+mounts, so there is no light flash on reload.
+
+Both palettes are CSS variables on `:root` and `[data-theme='dark']`. Mermaid diagrams are
+re-initialized and re-rendered with a matching dark palette, and the force graph, tooltips, code
+blocks, badges and dialogs all switch with the rest of the UI. No backend setting is involved.
+
+---
+
 ## What you get
 
 - **Overview** — the paper in plain language, headline numbers, and jump-off points.
@@ -243,6 +256,8 @@ curl http://localhost:8787/api/categories
   architecture, UML class/ER diagrams, activity/state/sequence flows, a diagram & Mermaid syntax
   guide, runtime and Tailscale delivery, and the API. Documents are grouped in a rail with an
   on-page outline, source view, and zoomable diagrams.
+- **Dark / light mode** — a persisted top-bar toggle with matching Mermaid and knowledge-graph colors;
+  it defaults to your OS preference until you choose.
 
 ---
 

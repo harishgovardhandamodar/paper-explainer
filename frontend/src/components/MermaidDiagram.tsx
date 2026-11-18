@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import mermaid from 'mermaid';
+import { useTheme, type Theme } from '../theme';
 
 // Mermaid throws if two renders share an id. A monotonic counter keeps ids unique
 // even across React StrictMode's double-invoked effects and component remounts.
@@ -9,11 +10,8 @@ const ZOOM_MIN = 0.4;
 const ZOOM_MAX = 3;
 const clampZoom = (n: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(n * 10) / 10));
 
-mermaid.initialize({
-  startOnLoad: false,
-  securityLevel: 'loose',
-  theme: 'base',
-  themeVariables: {
+const THEME_VARIABLES: Record<Theme, Record<string, string>> = {
+  light: {
     background: '#ffffff',
     primaryColor: '#eef2ff',
     primaryBorderColor: '#6366f1',
@@ -21,11 +19,52 @@ mermaid.initialize({
     lineColor: '#94a3b8',
     secondaryColor: '#ecfdf5',
     tertiaryColor: '#f8fafc',
-    fontFamily: 'DM Sans, sans-serif',
-    fontSize: '13px',
   },
-  flowchart: { curve: 'basis', htmlLabels: true, nodeSpacing: 46, rankSpacing: 58 },
-});
+  dark: {
+    background: '#111722',
+    primaryColor: '#252b46',
+    primaryBorderColor: '#818cf8',
+    primaryTextColor: '#e0e7ff',
+    lineColor: '#8290aa',
+    secondaryColor: '#15332d',
+    tertiaryColor: '#171e2b',
+  },
+};
+
+// Generated diagrams sometimes carry explicit classDef colors (e.g. "secure" vs "danger").
+// Remap those light tints so hand-colored nodes stay legible on the dark canvas.
+const DARK_COLOR_MAP: Record<string, string> = {
+  '#eef2ff': '#252b46',
+  '#6366f1': '#818cf8',
+  '#312e81': '#e0e7ff',
+  '#ecfdf5': '#15332d',
+  '#10b981': '#34d399',
+  '#065f46': '#a7f3d0',
+  '#fff7ed': '#3a2a1a',
+  '#f97316': '#fb923c',
+  '#7c2d12': '#fed7aa',
+  '#f8fafc': '#111722',
+  '#f0f9ff': '#112a3a',
+};
+
+function adaptCodeForTheme(code: string, theme: Theme): string {
+  if (theme === 'light') return code;
+  return code.replace(/#[0-9a-fA-F]{6}\b/g, (hex) => DARK_COLOR_MAP[hex.toLowerCase()] ?? hex);
+}
+
+function initializeMermaid(theme: Theme) {
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: 'loose',
+    theme: 'base',
+    themeVariables: {
+      ...THEME_VARIABLES[theme],
+      fontFamily: 'DM Sans, sans-serif',
+      fontSize: '13px',
+    },
+    flowchart: { curve: 'basis', htmlLabels: true, nodeSpacing: 46, rankSpacing: 58 },
+  });
+}
 
 export function MermaidDiagram({ code, showSource = false }: { code: string; showSource?: boolean }) {
   const rawId = useId().replace(/[^a-zA-Z0-9]/g, '');
@@ -33,7 +72,11 @@ export function MermaidDiagram({ code, showSource = false }: { code: string; sho
   const [error, setError] = useState('');
   const [openSource, setOpenSource] = useState(showSource);
   const [zoom, setZoom] = useState(1);
+  const theme = useTheme();
   const viewportRef = useRef<HTMLDivElement>(null);
+
+  // Mermaid bakes colors into the SVG at render time, so re-initialize and re-render on theme changes.
+  useEffect(() => { initializeMermaid(theme); }, [theme]);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,7 +84,7 @@ export function MermaidDiagram({ code, showSource = false }: { code: string; sho
     setError('');
     setZoom(1);
     mermaid
-      .render(renderId, code)
+      .render(renderId, adaptCodeForTheme(code, theme))
       .then((result) => { if (!cancelled) setSvg(result.svg); })
       .catch((e: unknown) => {
         if (!cancelled) {
@@ -50,7 +93,7 @@ export function MermaidDiagram({ code, showSource = false }: { code: string; sho
         }
       });
     return () => { cancelled = true; };
-  }, [code, rawId]);
+  }, [code, rawId, theme]);
 
   // Ctrl/⌘ + wheel zooms without hijacking normal page scrolling.
   useEffect(() => {

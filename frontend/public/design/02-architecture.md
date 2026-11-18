@@ -8,14 +8,16 @@ A deliberately small stack: one Rust process, one React bundle, one JSON file. T
 flowchart TB
   subgraph CLIENT["Browser (React 19 + Vite + TypeScript)"]
     APP["App shell<br/>state + navigation"]
+    THEME["theme.ts<br/>resolve · persist · broadcast"]
     VIEWS["Views<br/>Overview, Hypotheses, Experiments,<br/>Diagrams, Workflows, Findings, Graph, Library"]
     MER["MermaidDiagram<br/>render · zoom · copy · download"]
     FG["ForceGraph<br/>custom SVG simulation"]
     DLG["AddPaperDialog"]
     APIC["api.ts<br/>fetch wrapper"]
     TYPES["types.ts<br/>mirrors Rust models"]
-    APP --> VIEWS & DLG
+    APP --> VIEWS & DLG & THEME
     VIEWS --> MER & FG
+    THEME -.dataset + event.-> MER & FG & VIEWS
     APP --> APIC
     APIC -.shapes.-> TYPES
   end
@@ -91,3 +93,28 @@ flowchart LR
 - **Deterministic graph rebuild.** The graph is derived, never hand-edited (except user-added edges, which survive rebuilds). This keeps it correct as papers are added or removed.
 - **Backend serves the frontend.** In production the Axum process serves `frontend/dist` and falls back to `index.html` for client-side routes, so there is a single deployable artifact.
 - **Zoomable diagrams.** Mermaid SVGs live in a bounded, scrollable viewport with CSS `zoom` controls — see *Diagram & Mermaid guide*.
+
+## Theming
+
+The light and dark palettes are two sets of CSS variables: `:root` and `[data-theme='dark']` in
+`frontend/src/styles.css`. Components only reference the variables, so a single attribute on
+`<html>` reskins cards, badges, code blocks, the top bar, the force graph and its tooltip.
+
+```mermaid
+flowchart LR
+  BOOT["index.html inline script"] -->|"saved choice or OS preference"| ATTR["html[data-theme]"]
+  TOGGLE["Top-bar ☾/☀ button"] --> APPLY["theme.ts applyTheme()"]
+  APPLY --> ATTR
+  APPLY --> LS[("localStorage")]
+  APPLY --> EVENT["window theme event"]
+  EVENT --> MER["MermaidDiagram<br/>re-initialize + re-render"]
+  EVENT --> APP["App shell re-render"]
+  ATTR --> CSS["CSS variable palettes"]
+  CSS --> UI["All views + graph SVG"]
+```
+
+`index.html` sets `data-theme` before the bundle loads to avoid a flash of the wrong palette. The
+toggle in the top bar persists the choice and broadcasts it; Mermaid SVGs bake colors in at render
+time, so `MermaidDiagram` re-initializes Mermaid with a matching palette and re-renders on that
+event. The graph uses CSS variables directly for edges, markers, labels and node strokes, so it
+changes without a simulation rebuild.

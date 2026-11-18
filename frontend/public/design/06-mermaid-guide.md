@@ -17,6 +17,11 @@ flowchart LR
 
 Every render uses a unique id (a monotonic counter) so React StrictMode's double-invoked effects never collide.
 
+When you switch to dark mode, `MermaidDiagram` re-initializes Mermaid with a dark palette and re-renders
+all diagrams. A few generated diagrams carry explicit `classDef` colors to distinguish nodes (for
+example *secure* vs *danger*); those light tints are remapped to dark equivalents for rendering, while
+**Show Mermaid source** and **Copy** still return the original, unmodified source.
+
 ## Diagram types used here
 
 | Type | Mermaid keyword | Used for |
