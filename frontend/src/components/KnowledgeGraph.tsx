@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react';
-import type { GraphEdge, GraphNode, KnowledgeGraph, NodeKind } from '../types';
+import type { EdgeKind, GraphEdge, GraphNode, KnowledgeGraph, NodeKind } from '../types';
 
 export const NODE_COLORS: Record<NodeKind, string> = {
   paper: '#4f46e5',
@@ -18,6 +18,25 @@ export const NODE_LABELS: Record<NodeKind, string> = {
   paper: 'Paper', concept: 'Concept', hypothesis: 'Hypothesis', experiment: 'Experiment',
   finding: 'Finding', method: 'Method', dataset: 'Dataset', metric: 'Metric', reference: 'Reference',
 };
+
+// Plain-English explanations shown in the edge overlay, so a relation is more
+// than just a verb between two labels.
+const EDGE_EXPLAIN: Record<EdgeKind, string> = {
+  proposes: 'The paper poses this question or hypothesis.',
+  tests: 'An experiment checks this hypothesis.',
+  supports: 'Evidence here supports this claim.',
+  challenges: 'Evidence here pushes back on this claim.',
+  uses: 'One node makes use of the other.',
+  extends: 'One node builds on the other.',
+  subsumes: 'One node is a broader category that contains the other.',
+  refines: 'One node narrows or sharpens the other.',
+  produces: 'One node produces or yields the other.',
+  related_to: 'A general connection between the two nodes.',
+  cites: 'One node cites the other as a reference.',
+  cited_by: 'One node is referenced by the other.',
+};
+
+interface HoverInfo { kind: string; title: string; x: number; y: number; }
 
 interface SimNode {
   id: string;
@@ -58,8 +77,30 @@ export function ForceGraph({ graph, selectedId, onSelect, highlightPaperId }: Pr
   const [size, setSize] = useState({ w: 800, h: 600 });
   const [transform, setTransform] = useState<Transform>({ x: 0, y: 0, k: 1 });
   const [tick, setTick] = useState(0);
-  const [hover, setHover] = useState<{ node: GraphNode; x: number; y: number } | null>(null);
+  const [hover, setHover] = useState<HoverInfo | null>(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
   const alphaRef = useRef(1);
+
+  // Escape is the expected way out of a full-screen view.
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setFullscreen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [fullscreen]);
+
+  // Tooltip coordinates relative to the canvas wrapper (offsetX is unreliable
+  // on SVG children such as edge lines).
+  const localPoint = useCallback((clientX: number, clientY: number) => {
+    const rect = wrapRef.current?.getBoundingClientRect();
+    return { x: clientX - (rect?.left ?? 0), y: clientY - (rect?.top ?? 0) };
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedEdgeId(null);
+    onSelect(null);
+  }, [onSelect]);
 
   useEffect(() => {
     if (!wrapRef.current) return;
@@ -170,6 +211,9 @@ export function ForceGraph({ graph, selectedId, onSelect, highlightPaperId }: Pr
 
   const onNodeDown = (e: ReactPointerEvent, node: SimNode) => {
     e.stopPropagation();
+    // Pointer capture retargets the later `click` to the SVG, so select here.
+    setSelectedEdgeId(null);
+    onSelect(node.data);
     const p = toGraph(e.clientX, e.clientY);
     dragRef.current = { type: 'node', id: node.id, sx: p.x, sy: p.y, ox: node.x, oy: node.y };
     node.pinned = true;
@@ -181,6 +225,7 @@ export function ForceGraph({ graph, selectedId, onSelect, highlightPaperId }: Pr
     dragRef.current = { type: 'pan', sx: e.clientX, sy: e.clientY, ox: transform.x, oy: transform.y };
     svgRef.current?.setPointerCapture(e.pointerId);
     setHover(null);
+    clearSelection();
   };
 
   const onMove = (e: ReactPointerEvent) => {
@@ -235,8 +280,36 @@ export function ForceGraph({ graph, selectedId, onSelect, highlightPaperId }: Pr
   const edges = edgesRef.current;
   void tick;
 
+  // Overlay data. Node selection is owned by the parent (so the Inspector and
+  // the graph stay in sync); edge selection is local to the canvas.
+  const nodeById = new Map(nodes.map((n) => [n.id, n.data]));
+  const labelById = new Map([...nodeById].map(([id, n]) => [id, n.label]));
+  const infoNode = graph.nodes.find((n) => n.id === selectedId) ?? null;
+  const infoEdge = edges.find((e) => e.data.id === selectedEdgeId)?.data ?? null;
+  const nodeDegree = infoNode
+    ? edges.filter((e) => e.source.id === infoNode.id || e.target.id === infoNode.id).length
+    : 0;
+  const nodeConnections = infoNode
+    ? edges.filter((e) => e.source.id === infoNode.id || e.target.id === infoNode.id).map((e) => ({
+        id: e.data.id,
+        kind: e.data.kind,
+        other: labelById.get(e.source.id === infoNode.id ? e.target.id : e.source.id) ?? 'Unknown',
+      }))
+    : [];
+
+  const selectEdge = (edge: GraphEdge, clientX: number, clientY: number) => {
+    setSelectedEdgeId(edge.id);
+    onSelect(null);
+    const p = localPoint(clientX, clientY);
+    setHover({
+      kind: `Relation · ${edge.kind.replace(/_/g, ' ')}`,
+      title: `${labelById.get(edge.source) ?? edge.source} → ${labelById.get(edge.target) ?? edge.target}`,
+      x: p.x, y: p.y,
+    });
+  };
+
   return (
-    <div className="graph-canvas-wrap" ref={wrapRef}>
+    <div className={`graph-canvas-wrap ${fullscreen ? 'graph-fullscreen' : ''}`} ref={wrapRef}>
       <svg
         ref={svgRef}
         onPointerDown={onCanvasDown}
@@ -256,17 +329,35 @@ export function ForceGraph({ graph, selectedId, onSelect, highlightPaperId }: Pr
         <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
           {edges.map((e) => {
             const active = !selectedId || (neighbors.has(e.source.id) && neighbors.has(e.target.id));
-            const hit = selectedId && (e.source.id === selectedId || e.target.id === selectedId);
+            const hit = selectedEdgeId === e.data.id
+              || (!!selectedId && (e.source.id === selectedId || e.target.id === selectedId));
             return (
-              <line
-                key={e.data.id}
-                className="graph-edge"
-                x1={e.source.x} y1={e.source.y} x2={e.target.x} y2={e.target.y}
-                style={{ stroke: hit ? 'var(--graph-hi)' : 'var(--graph-edge)' }}
-                strokeWidth={hit ? 2 : 1.1}
-                strokeOpacity={active ? 1 : 0.14}
-                markerEnd={hit ? 'url(#pe-arrow-hi)' : 'url(#pe-arrow)'}
-              />
+              <g key={e.data.id}>
+                <line
+                  className="graph-edge"
+                  x1={e.source.x} y1={e.source.y} x2={e.target.x} y2={e.target.y}
+                  style={{ stroke: hit ? 'var(--graph-hi)' : 'var(--graph-edge)' }}
+                  strokeWidth={hit ? 2.4 : 1.1}
+                  strokeOpacity={active ? 1 : 0.14}
+                  markerEnd={hit ? 'url(#pe-arrow-hi)' : 'url(#pe-arrow)'}
+                />
+                {/* Invisible wide line so thin relations are actually clickable. */}
+                <line
+                  className="graph-edge-hit"
+                  x1={e.source.x} y1={e.source.y} x2={e.target.x} y2={e.target.y}
+                  onPointerDown={(ev) => ev.stopPropagation()}
+                  onClick={(ev) => { ev.stopPropagation(); selectEdge(e.data, ev.clientX, ev.clientY); }}
+                  onPointerEnter={(ev) => {
+                    const p = localPoint(ev.clientX, ev.clientY);
+                    setHover({
+                      kind: `Relation · ${e.data.kind.replace(/_/g, ' ')}`,
+                      title: `${labelById.get(e.data.source) ?? e.data.source} → ${labelById.get(e.data.target) ?? e.data.target}`,
+                      x: p.x, y: p.y,
+                    });
+                  }}
+                  onPointerLeave={() => setHover(null)}
+                />
+              </g>
             );
           })}
           {nodes.map((n) => {
@@ -280,10 +371,19 @@ export function ForceGraph({ graph, selectedId, onSelect, highlightPaperId }: Pr
                 transform={`translate(${n.x},${n.y})`}
                 opacity={(active && !dim) ? 1 : 0.2}
                 onPointerDown={(e) => onNodeDown(e, n)}
-                onClick={(e) => { e.stopPropagation(); onSelect(n.data); }}
-                onPointerEnter={(e) => setHover({ node: n.data, x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY })}
+                onClick={(e) => { e.stopPropagation(); setSelectedEdgeId(null); onSelect(n.data); }}
+                onPointerEnter={(e) => {
+                  const p = localPoint(e.clientX, e.clientY);
+                  setHover({
+                    kind: `${NODE_LABELS[n.data.kind]} · ${n.data.paper_ids.length} paper(s)`,
+                    title: n.data.label,
+                    x: p.x, y: p.y,
+                  });
+                }}
                 onPointerLeave={() => setHover(null)}
               >
+                {/* Generous invisible hit area so small nodes (and their labels) are easy to click. */}
+                <circle r={n.r + 9} fill="transparent" />
                 {isSelected && <circle r={n.r + 7} fill="none" stroke={NODE_COLORS[n.data.kind]} strokeOpacity={0.35} strokeWidth={2} />}
                 <circle
                   r={n.r}
@@ -305,12 +405,72 @@ export function ForceGraph({ graph, selectedId, onSelect, highlightPaperId }: Pr
         <button className="btn sm" onClick={() => setTransform({ x: 0, y: 0, k: 1 })}>Reset view</button>
         <button className="btn sm" onClick={() => setTransform((t) => ({ ...t, k: Math.min(2.6, t.k * 1.2) }))}>+</button>
         <button className="btn sm" onClick={() => setTransform((t) => ({ ...t, k: Math.max(0.35, t.k * 0.83) }))}>−</button>
+        <button className={`btn sm ${fullscreen ? 'primary' : ''}`} onClick={() => setFullscreen((v) => !v)}
+          title={fullscreen ? 'Exit full screen (Esc)' : 'Expand the graph to fill the screen'}>
+          {fullscreen ? '⤡ Exit full screen' : '⤢ Full screen'}
+        </button>
       </div>
-      <div className="graph-hint">Drag nodes · scroll to zoom · drag canvas to pan · click to inspect</div>
+      <div className="graph-hint">Drag nodes · scroll to zoom · drag canvas to pan · click a node or a relation to inspect</div>
+
+      {(infoNode || infoEdge) && (
+        <div className="graph-info-overlay" role="dialog" aria-label="Graph item details">
+          <div className="gio-head">
+            <span className="gio-badge" style={{ background: infoNode ? NODE_COLORS[infoNode.kind] : 'var(--accent)' }} />
+            <span>{infoNode ? NODE_LABELS[infoNode.kind] : 'Relation'}</span>
+            <button className="gio-close" onClick={clearSelection} aria-label="Close details" title="Close">×</button>
+          </div>
+
+          {infoNode && <>
+            <h3 className="gio-title">{infoNode.label}</h3>
+            <div className="gio-detail">{infoNode.detail}</div>
+            <div className="gio-meta">{infoNode.paper_ids.length} paper(s) · {nodeDegree} link(s)</div>
+            {!!infoNode.paper_ids.length && <div className="gio-section">
+              <div className="gio-label">Papers</div>
+              <div className="gio-chips">{infoNode.paper_ids.map((id) => (
+                <span key={id} className="gio-chip mono">{id}</span>
+              ))}</div>
+            </div>}
+            {!!nodeConnections.length && <div className="gio-section">
+              <div className="gio-label">Connections ({nodeConnections.length})</div>
+              <div className="gio-links">
+                {nodeConnections.slice(0, 8).map((c) => (
+                  <div key={c.id} className="gio-link">
+                    <span className="gio-rel">{c.kind.replace(/_/g, ' ')}</span><span className="gio-other">{c.other}</span>
+                  </div>
+                ))}
+                {nodeConnections.length > 8 && <div className="gio-more">+{nodeConnections.length - 8} more</div>}
+              </div>
+            </div>}
+          </>}
+
+          {infoEdge && <>
+            <h3 className="gio-title">{EDGE_EXPLAIN[infoEdge.kind]}</h3>
+            <div className="gio-links gio-edge-ends">
+              {[infoEdge.source, infoEdge.target].map((id, i) => {
+                const node = nodeById.get(id);
+                return <div key={id} className="gio-link">
+                  <span className="gio-rel">{i === 0 ? 'From' : 'To'}</span>
+                  <span className="gio-badge" style={{ background: node ? NODE_COLORS[node.kind] : 'var(--accent)' }} />
+                  <span className="gio-other">{node ? `${NODE_LABELS[node.kind]}: ${node.label}` : id}</span>
+                </div>;
+              })}
+            </div>
+            <div className="gio-meta">Relation: {infoEdge.kind.replace(/_/g, ' ')}{infoEdge.label ? ` · “${infoEdge.label}”` : ''}</div>
+            {!!infoEdge.paper_ids.length && <div className="gio-section">
+              <div className="gio-label">Papers</div>
+              <div className="gio-chips">{infoEdge.paper_ids.map((id) => (
+                <span key={id} className="gio-chip mono">{id}</span>
+              ))}</div>
+            </div>}
+          </>}
+          <div className="gio-foot">Click the background or × to close</div>
+        </div>
+      )}
+
       {hover && (
         <div className="graph-tooltip" style={{ left: Math.min(hover.x + 14, size.w - 270), top: hover.y + 12 }}>
-          <div className="gt-kind">{NODE_LABELS[hover.node.kind]} · {hover.node.paper_ids.length} paper(s)</div>
-          <div style={{ marginTop: 3, fontWeight: 600 }}>{hover.node.label}</div>
+          <div className="gt-kind">{hover.kind}</div>
+          <div style={{ marginTop: 3, fontWeight: 600 }}>{hover.title}</div>
         </div>
       )}
     </div>
