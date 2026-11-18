@@ -184,6 +184,19 @@ export interface CitationEntry {
   unresolved: number;
 }
 
+/** A concept aggregated across the whole collection for the glossary. */
+export interface GlossaryEntry {
+  id: string;
+  name: string;
+  definition: string;
+  simple_definition: string;
+  category: string;
+  aliases: string[];
+  prerequisites: string[];
+  paper_ids: string[];
+  usage_count: number;
+}
+
 export type AnnotationTarget = 'entity' | 'quote' | 'section';
 
 export interface Annotation {

@@ -248,6 +248,24 @@ impl Default for PaperSection {
     fn default() -> Self { Self { heading: String::new(), level: 2, paragraphs: Vec::new() } }
 }
 
+/// A concept aggregated across the whole collection for the student-friendly
+/// glossary. Definitions are kept verbatim; `simple_definition` is a
+/// deterministic plain-language rewrite of the same text.
+#[derive(Debug, Clone, Serialize)]
+pub struct GlossaryEntry {
+    pub id: String,
+    pub name: String,
+    pub definition: String,
+    pub simple_definition: String,
+    pub category: String,
+    pub aliases: Vec<String>,
+    /// Names of concepts that a reader should understand first.
+    pub prerequisites: Vec<String>,
+    /// Papers whose extraction mentions this concept.
+    pub paper_ids: Vec<String>,
+    pub usage_count: usize,
+}
+
 /// One bibliography entry parsed from a paper's reference list. Entries can be
 /// resolved to another paper in the collection by canonical arXiv id, DOI or
 /// (as a fallback) normalised title, which drives the citation graph.

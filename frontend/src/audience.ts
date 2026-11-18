@@ -99,6 +99,7 @@ const PLAIN_LABELS: Record<string, string> = {
   'Synthesis builder': 'Write the bridge',
   'Triage inbox': 'Reading queue',
   'Citation graph': 'Who builds on whom',
+  Glossary: 'Plain-language terms',
   'Reading queue': 'What to read next',
   'Synthesis': 'Bring the papers together',
   'Conflicts across papers': 'Where the evidence disagrees',

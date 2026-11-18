@@ -4,6 +4,7 @@ pub mod citations;
 pub mod error;
 pub mod explain;
 pub mod exports;
+pub mod glossary;
 pub mod graph;
 pub mod identifiers;
 pub mod ingest;
@@ -31,6 +32,8 @@ pub fn build_router(state: api::ApiState, dist: &Path) -> Router {
         .route("/api/resolve", get(api::resolve_identifier))
         .route("/api/library", get(api::library))
         .route("/api/categories", get(api::categories))
+        .route("/api/glossary", get(api::glossary))
+        .route("/api/glossary/{name}", get(api::glossary_entry))
         .route("/api/papers/{id}", get(api::get_paper).delete(api::delete_paper))
         .route("/api/papers/{id}/refresh", post(api::refresh))
         .route("/api/papers/{id}/enhance", post(api::enhance_paper).delete(api::clear_enhancement))

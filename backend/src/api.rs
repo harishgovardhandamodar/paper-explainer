@@ -46,6 +46,27 @@ pub async fn categories() -> Json<Vec<CategoryDef>> {
     Json(crate::categories::category_defs())
 }
 
+// -- Glossary & concept explorer --------------------------------------------
+
+/// Collection-wide glossary aggregated from every paper's extracted concepts.
+pub async fn glossary(State(state): State<ApiState>) -> ApiResult<Json<Vec<GlossaryEntry>>> {
+    Ok(Json(crate::glossary::build(&state.store.read()?.papers)))
+}
+
+/// One glossary entry looked up by name (case-insensitive) or glossary id.
+pub async fn glossary_entry(
+    State(state): State<ApiState>, Path(name): Path<String>,
+) -> ApiResult<Json<GlossaryEntry>> {
+    let store = state.store.read()?;
+    let entries = crate::glossary::build(&store.papers);
+    let needle = name.to_lowercase();
+    entries.into_iter()
+        .find(|e| e.name.to_lowercase() == needle || e.id == name
+            || e.aliases.iter().any(|a| a.to_lowercase() == needle))
+        .ok_or_else(|| AppError::NotFound(format!("glossary term '{name}'")))
+        .map(Json)
+}
+
 // -- Reading progress & triage ----------------------------------------------
 
 pub async fn list_reading_states(State(state): State<ApiState>) -> ApiResult<Json<Vec<ReadingState>>> {
@@ -70,8 +91,6 @@ pub async fn get_paper(
     Ok(Json(state.store.get_paper(&id)?))
 }
 
-/// Deterministically mined, reviewable open-question candidates for a paper.
-/// Nothing is persisted here; the UI decides which candidates become follow-ups.
 // -- Citation graph --------------------------------------------------------
 
 /// Per-paper citation summary (outgoing `cites`, incoming `cited_by`) plus

@@ -597,6 +597,35 @@ a:hover { text-decoration: underline; }
 .linkish { border: 0; background: none; padding: 0; color: var(--accent); cursor: pointer; font-family: inherit; }
 .linkish:hover { text-decoration: underline; }
 
+/* ---------- Glossary & concept explorer ---------- */
+.gloss-stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.gloss-stat { display: flex; flex-direction: column; gap: 2px; min-width: 122px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-elevated); padding: 11px 14px; }
+.gloss-stat b { font-family: var(--font-serif); font-size: 23px; line-height: 1; color: var(--accent); }
+.gloss-stat span { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; font-weight: 700; color: var(--text-faint); }
+.gloss-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.gloss-toolbar select { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 12px; }
+.gloss-filter { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.gloss-filter button { border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text-muted); border-radius: 999px; padding: 5px 12px; font-size: 11.5px; font-weight: 600; cursor: pointer; }
+.gloss-filter button span { opacity: .6; margin-left: 4px; font-family: var(--font-mono); }
+.gloss-filter button.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-strong); }
+.gloss-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; align-items: start; }
+.gloss-card { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-elevated); padding: 13px 15px; transition: border-color .15s, box-shadow .15s; }
+.gloss-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+.gloss-card.expanded { border-color: var(--accent); grid-column: 1 / -1; }
+.gloss-card-head { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: none; padding: 0; text-align: left; cursor: pointer; color: var(--text); }
+.gloss-name { font-family: var(--font-serif); font-size: 16px; font-weight: 700; flex: 1; }
+.gloss-chevron { font-family: var(--font-mono); font-size: 17px; color: var(--text-faint); }
+.gloss-def { margin-top: 9px; font-size: 12.5px; line-height: 1.6; color: var(--text-muted); }
+.gloss-def-label { display: inline-block; margin-right: 7px; padding: 1px 6px; border-radius: 5px; background: var(--accent-soft); color: var(--accent-strong); font-size: 9px; text-transform: uppercase; letter-spacing: .07em; font-weight: 700; vertical-align: 1px; }
+.gloss-aliases { margin-top: 7px; line-height: 1.5; }
+.gloss-foot { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; padding-top: 9px; border-top: 1px dashed var(--border); color: var(--text-muted); }
+.gloss-detail { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); display: grid; gap: 12px; }
+.gloss-detail-row > b { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-faint); margin-bottom: 5px; }
+.gloss-detail-row p { margin: 0; font-size: 12.5px; line-height: 1.65; color: var(--text-muted); }
+.gloss-links { display: flex; flex-wrap: wrap; gap: 6px; }
+.gloss-paper-link { display: block; max-width: 100%; text-align: left; padding: 5px 9px; border: 1px solid var(--border); border-radius: 7px; font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gloss-mode-note { color: var(--text-faint); }
+
 /* ---------- Reading triage ---------- */
 .facet-subhead { font-size: 10px; text-transform: uppercase; letter-spacing: .09em; font-weight: 700; color: var(--text-faint); padding: 10px 2px 2px; border-top: 1px solid var(--border); margin-top: 8px; }
 .triage-stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }

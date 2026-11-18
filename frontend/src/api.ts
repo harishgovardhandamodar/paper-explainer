@@ -1,6 +1,6 @@
 import type {
   Annotation, CategoryDef, CitationEntry, CreateAnnotation, CreateFollowUp, FollowUp, GraphEdge, Health,
-  CreateSynthesis, HypothesisTracker, IngestRequest, KnowledgeGraph, LibraryQuery, LibraryResponse,
+  CreateSynthesis, GlossaryEntry, HypothesisTracker, IngestRequest, KnowledgeGraph, LibraryQuery, LibraryResponse,
   LlmStatus, OpenQuestion, Paper, PaperReference, PaperSummary, ReadingState, ResolveResponse,
   SearchResult, Stats, Synthesis, UpdateReadingState, UpdateSynthesis,
 } from './types';
@@ -29,6 +29,9 @@ export const api = {
   stats: () => request<Stats>('/stats'),
   listPapers: () => request<PaperSummary[]>('/papers'),
   categories: () => request<CategoryDef[]>('/categories'),
+  glossary: () => request<GlossaryEntry[]>('/glossary'),
+  glossaryEntry: (name: string) =>
+    request<GlossaryEntry>(`/glossary/${encodeURIComponent(name)}`),
   library: (params: LibraryQuery = {}) => {
     const qs = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
