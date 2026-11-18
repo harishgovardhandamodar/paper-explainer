@@ -9,7 +9,7 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 
 - [x] **1. Presentation mode** (M) — Slideshow from a paper: question → hypotheses → method → results → caveats → implications. Arrow keys, fullscreen, per-slide speaker notes.
 - [x] **2. Audience lens** (M) — Researcher / Engineer / Executive / Student switch that changes depth and vocabulary across views; deterministic text stays the baseline.
-- [ ] **3. Compare-papers view** (M) — Side-by-side 2–N comparison of question, method, datasets/metrics, results and caveats, plus graph focus.
+- [x] **3. Compare-papers view** (M) — Side-by-side 2–N comparison of question, method, datasets/metrics, results and caveats, plus graph focus.
 - [ ] **4. One-pager + multi-format export** (S–M) — Designed 1-page HTML/PDF brief, self-contained shareable readout, BibTeX, CSV/JSON findings, Marp/Slidev deck.
 - [ ] **5. Focus / spotlight mode** (S) — Dim everything but the selected claim + evidence; fullscreen a single Mermaid diagram; presenter timer.
 
@@ -54,3 +54,4 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 | 0 | Dark/light theme baseline | `9dfb6c1` | Pending work from prior session committed first |
 | 1 | Presentation mode | `d2bd6fb` | Generated slides from paper structure; arrow/Home/End/N/Esc keys, fullscreen stage, notes panel, progress dots; `MermaidDiagram` bare mode |
 | 2 | Audience lens | `7c6fd7b` | Persisted Researcher/Engineer/Executive/Student switch in topbar; plain labels, collapsible raw evidence, student glossary; deterministic text unchanged |
+| 3 | Compare-papers view | `1a72e29` | 2–N picker, aligned dimension matrix with differences-only filter, shared-bridge list and focused force graph |
