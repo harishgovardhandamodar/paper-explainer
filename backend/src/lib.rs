@@ -4,6 +4,7 @@ pub mod citations;
 pub mod corrections;
 pub mod error;
 pub mod explain;
+pub mod guardrails;
 pub mod exports;
 pub mod glossary;
 pub mod graph;
@@ -71,6 +72,11 @@ pub fn build_router(state: api::ApiState, dist: &Path) -> Router {
         .route("/api/papers/{id}/editable", get(api::editable_items))
         .route("/api/papers/{id}/corrections", post(api::apply_correction))
         .route("/api/papers/{id}/corrections/{correction_id}", delete(api::revert_correction))
+        .route("/api/papers/{id}/insights", get(api::insight_report))
+        .route("/api/papers/{id}/insights/rebuild", post(api::rebuild_insight_anchors))
+        .route("/api/papers/{id}/insights/{key}/verify", post(api::verify_insight))
+        .route("/api/papers/{id}/insights/{key}/verification", put(api::set_insight_verification))
+        .route("/api/papers/{id}/insights/{key}/section", put(api::set_insight_section))
         .route("/api/graph", get(api::get_graph))
         .route("/api/graph/mermaid", get(api::get_graph_mermaid))
         .route("/api/graph/edges", post(api::add_edge))

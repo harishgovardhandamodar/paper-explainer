@@ -51,6 +51,11 @@ impl StoreHandle {
         // Likewise, older papers gain per-item provenance on first open so
         // every badge is present without any user action.
         let _provenance_backfilled = crate::provenance::backfill(&mut store.papers);
+        // Older AI explanations gain section anchors + verification state on
+        // first open, so every insight is checkable without regenerating it.
+        for paper in &mut store.papers {
+            crate::guardrails::ensure_anchors(paper, None);
+        }
 
         let handle = Self { path, inner: Arc::new(RwLock::new(store)) };
         handle.rebuild_graph()?;
@@ -815,6 +820,58 @@ impl StoreHandle {
 
     pub fn quality_report(&self) -> AppResult<crate::corrections::QualityReport> {
         Ok(crate::corrections::quality_report(&self.read()?.papers))
+    }
+
+    // -- AI guardrails --------------------------------------------------------
+
+    pub fn insight_report(&self, paper_id: &str) -> AppResult<crate::guardrails::GuardrailReport> {
+        Ok(crate::guardrails::report(&self.get_paper(paper_id)?))
+    }
+
+    pub fn verify_insight(&self, paper_id: &str, key: &str) -> AppResult<InsightAnchor> {
+        let saved = {
+            let mut store = self.write()?;
+            let paper = store.find_paper_mut(paper_id)
+                .ok_or_else(|| AppError::NotFound(format!("paper '{paper_id}'")))?;
+            crate::guardrails::verify_insight(paper, key)?
+        };
+        self.flush()?;
+        Ok(saved)
+    }
+
+    pub fn set_insight_verification(
+        &self, paper_id: &str, key: &str, verification: InsightVerification, note: String,
+    ) -> AppResult<InsightAnchor> {
+        let saved = {
+            let mut store = self.write()?;
+            let paper = store.find_paper_mut(paper_id)
+                .ok_or_else(|| AppError::NotFound(format!("paper '{paper_id}'")))?;
+            crate::guardrails::set_verification(paper, key, verification, note)?
+        };
+        self.flush()?;
+        Ok(saved)
+    }
+
+    pub fn set_insight_section(&self, paper_id: &str, key: &str, section: String) -> AppResult<InsightAnchor> {
+        let saved = {
+            let mut store = self.write()?;
+            let paper = store.find_paper_mut(paper_id)
+                .ok_or_else(|| AppError::NotFound(format!("paper '{paper_id}'")))?;
+            crate::guardrails::set_section(paper, key, section)?
+        };
+        self.flush()?;
+        Ok(saved)
+    }
+
+    pub fn rebuild_insight_anchors(&self, paper_id: &str) -> AppResult<usize> {
+        let changed = {
+            let mut store = self.write()?;
+            let paper = store.find_paper_mut(paper_id)
+                .ok_or_else(|| AppError::NotFound(format!("paper '{paper_id}'")))?;
+            crate::guardrails::ensure_anchors(paper, None)
+        };
+        if changed { self.flush()?; }
+        Ok(if changed { 1 } else { 0 })
     }
 
     pub fn backfill_provenance(&self) -> AppResult<usize> {

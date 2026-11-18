@@ -239,6 +239,11 @@ pub struct PaperEnhancement {
     pub key_insights: Vec<String>,
     /// Limitations or caveats the model flagged.
     pub caveats: Vec<String>,
+    /// Source anchors and verification state for each discrete AI insight
+    /// (key insights and caveats), keyed by their enhancement item key.
+    /// Filled deterministically and kept in sync with `key_insights`/`caveats`.
+    #[serde(default)]
+    pub insight_anchors: Vec<InsightAnchor>,
     /// Model the caller asked for (e.g. qwen3.8:27b).
     pub requested_model: String,
     /// Model that actually answered (the gateway may reroute).
@@ -254,9 +259,78 @@ impl Default for PaperEnhancement {
     fn default() -> Self {
         Self {
             tldr: String::new(), explanation: String::new(), how_it_works: String::new(),
-            key_insights: Vec::new(), caveats: Vec::new(), requested_model: String::new(),
-            served_model: String::new(), gateway: String::new(),
+            key_insights: Vec::new(), caveats: Vec::new(), insight_anchors: Vec::new(),
+            requested_model: String::new(), served_model: String::new(), gateway: String::new(),
             prompt_tokens: None, completion_tokens: None, generated_at: Utc::now(),
+        }
+    }
+}
+
+/// Verification state for one AI-written insight. Anchors start `Unverified`:
+/// the app never presents model text as checked until a reader runs the source
+/// check or marks it explicitly.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum InsightVerification {
+    Unverified,
+    Supported,
+    Contested,
+}
+
+impl Default for InsightVerification {
+    fn default() -> Self { Self::Unverified }
+}
+
+impl InsightVerification {
+    pub fn label(&self) -> &'static str {
+        match self {
+            Self::Unverified => "unverified",
+            Self::Supported => "supported",
+            Self::Contested => "contested",
+        }
+    }
+}
+
+/// Deterministic source anchor for one AI insight.
+///
+/// The section and the support score are produced by a lexical check against
+/// the paper's text — they are a guardrail signal, not a truth verdict. A human
+/// can override the verification state; that override is preserved across
+/// regeneration and re-import.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct InsightAnchor {
+    /// Enhancement item key, e.g. `enhancement:key_insights:0`.
+    pub key: String,
+    /// Category of the claim: `insight` or `caveat`.
+    pub category: String,
+    /// Snapshot of the claim text (authoritative copy lives on PaperEnhancement).
+    pub text: String,
+    /// Paper section the claim is anchored to. Empty means "whole paper".
+    pub section: String,
+    /// Human verification state, or the result of the automated source check.
+    pub verification: InsightVerification,
+    /// True once a human explicitly set the verification state.
+    pub human: bool,
+    /// When the last automated source check ran.
+    pub checked_at: Option<DateTime<Utc>>,
+    /// Lexical support in [0, 1]: share of the claim's key terms found in the
+    /// cited section. Not a probability that the claim is correct.
+    pub support: f32,
+    /// Claim terms found in the cited section.
+    pub matched_terms: Vec<String>,
+    /// Claim terms not found in the cited section.
+    pub missing_terms: Vec<String>,
+    pub note: String,
+}
+
+impl Default for InsightAnchor {
+    fn default() -> Self {
+        Self {
+            key: String::new(), category: "insight".into(), text: String::new(),
+            section: String::new(), verification: InsightVerification::Unverified,
+            human: false, checked_at: None, support: 0.0,
+            matched_terms: Vec::new(), missing_terms: Vec::new(), note: String::new(),
         }
     }
 }

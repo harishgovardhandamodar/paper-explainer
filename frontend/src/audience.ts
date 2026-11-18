@@ -103,6 +103,7 @@ const PLAIN_LABELS: Record<string, string> = {
   Projects: 'Reading projects',
   Provenance: 'Where this came from',
   Corrections: 'Fix an explanation',
+  Guardrails: 'Check the AI claims',
   'Reading queue': 'What to read next',
   'Synthesis': 'Bring the papers together',
   'Conflicts across papers': 'Where the evidence disagrees',

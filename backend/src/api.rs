@@ -216,7 +216,10 @@ pub async fn enhance_paper(
         let mut store = state.store.write()?;
         let p = store.find_paper_mut(&id)
             .ok_or_else(|| AppError::NotFound(format!("paper '{id}'")))?;
-        p.enhancement = Some(enhancement);
+        let old_anchors = p.enhancement.as_ref().map(|e| e.insight_anchors.clone()).unwrap_or_default();
+        let mut new_enhancement = enhancement;
+        crate::guardrails::carry_verification(&mut new_enhancement.insight_anchors, &old_anchors);
+        p.enhancement = Some(new_enhancement);
         p.updated_at = Utc::now();
         crate::provenance::refresh_enhancement_provenance(p);
         p.clone()
@@ -634,6 +637,58 @@ pub async fn revert_correction(
 /// Dashboard joining extraction rules to human corrections and confidence.
 pub async fn quality(State(state): State<ApiState>) -> ApiResult<Json<crate::corrections::QualityReport>> {
     Ok(Json(state.store.quality_report()?))
+}
+
+// -- AI guardrails -----------------------------------------------------------
+
+#[derive(Debug, Deserialize)]
+pub struct VerificationRequest {
+    pub verification: InsightVerification,
+    #[serde(default)]
+    pub note: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SectionRequest {
+    pub section: String,
+}
+
+/// All discrete AI insights on a paper with their section anchors and state.
+pub async fn insight_report(
+    State(state): State<ApiState>, Path(id): Path<String>,
+) -> ApiResult<Json<crate::guardrails::GuardrailReport>> {
+    Ok(Json(state.store.insight_report(&id)?))
+}
+
+/// One-click source check against the cited section.
+pub async fn verify_insight(
+    State(state): State<ApiState>, Path((id, key)): Path<(String, String)>,
+) -> ApiResult<Json<InsightAnchor>> {
+    Ok(Json(state.store.verify_insight(&id, &key)?))
+}
+
+/// Human override of verification state (survives re-checks and regeneration).
+pub async fn set_insight_verification(
+    State(state): State<ApiState>, Path((id, key)): Path<(String, String)>,
+    Json(req): Json<VerificationRequest>,
+) -> ApiResult<Json<InsightAnchor>> {
+    Ok(Json(state.store.set_insight_verification(&id, &key, req.verification, req.note)?))
+}
+
+/// Correct the section an insight is anchored to, then re-check it.
+pub async fn set_insight_section(
+    State(state): State<ApiState>, Path((id, key)): Path<(String, String)>,
+    Json(req): Json<SectionRequest>,
+) -> ApiResult<Json<InsightAnchor>> {
+    Ok(Json(state.store.set_insight_section(&id, &key, req.section)?))
+}
+
+/// Rebuild anchors for an enhancement created before guardrails existed.
+pub async fn rebuild_insight_anchors(
+    State(state): State<ApiState>, Path(id): Path<String>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let changed = state.store.rebuild_insight_anchors(&id)?;
+    Ok(Json(json!({ "changed": changed })))
 }
 
 pub async fn reset(State(state): State<ApiState>) -> ApiResult<StatusCode> {

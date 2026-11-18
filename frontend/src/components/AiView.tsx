@@ -14,12 +14,13 @@ function steps(text: string): { ordered: boolean; items: string[] } {
   };
 }
 
-export function AiView({ paper, status, busy, onEnhance, onClear }: {
+export function AiView({ paper, status, busy, onEnhance, onClear, onGuardrails }: {
   paper: Paper;
   status: LlmStatus | null;
   busy: boolean;
   onEnhance: () => void;
   onClear: () => void;
+  onGuardrails: () => void;
 }) {
   const ready = !!status?.reachable;
   const e = paper.enhancement;
@@ -92,6 +93,9 @@ export function AiView({ paper, status, busy, onEnhance, onClear }: {
                 <span className="tiny faint">· {relativeDate(e.generated_at)}</span>
               </div>
               <div className="row">
+                <button className="btn sm" onClick={onGuardrails} title="Check AI insights against their source sections">
+                  ⚑ Review sources
+                </button>
                 <button className="btn sm" onClick={onEnhance}>Regenerate</button>
                 <button className="btn sm" onClick={onClear}>Remove</button>
               </div>

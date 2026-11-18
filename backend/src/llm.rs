@@ -185,19 +185,29 @@ impl LlmClient {
             "AI enhancement generated"
         );
 
-        Ok(PaperEnhancement {
+        let mut enhancement = PaperEnhancement {
             tldr: clean(raw.tldr.unwrap_or_default()),
             explanation: clean(raw.explanation.unwrap_or_default()),
             how_it_works: clean(raw.how_it_works.unwrap_or_default()),
             key_insights: raw.key_insights.unwrap_or_default().iter().map(|s| clean(s.clone())).filter(|s| !s.is_empty()).collect(),
             caveats: raw.caveats.unwrap_or_default().iter().map(|s| clean(s.clone())).filter(|s| !s.is_empty()).collect(),
+            insight_anchors: Vec::new(),
             requested_model: self.config.model.clone(),
             served_model: chat.model.unwrap_or_else(|| self.config.model.clone()),
             gateway: self.config.base_url.clone(),
             prompt_tokens: chat.prompt_eval_count,
             completion_tokens: chat.eval_count,
             generated_at: Utc::now(),
-        })
+        };
+
+        // Anchor each discrete insight to a real paper section. Model-suggested
+        // headings win when valid; a deterministic lexical match is the fallback.
+        let suggested = raw.insight_sources.unwrap_or_default();
+        let mut anchored = paper.clone();
+        anchored.enhancement = Some(enhancement);
+        crate::guardrails::ensure_anchors(&mut anchored, Some(&suggested));
+        enhancement = anchored.enhancement.take().unwrap();
+        Ok(enhancement)
     }
 }
 
@@ -253,6 +263,7 @@ struct RawEnhancement {
     how_it_works: Option<String>,
     key_insights: Option<Vec<String>>,
     caveats: Option<Vec<String>>,
+    insight_sources: Option<Vec<String>>,
 }
 
 // ---------------------------------------------------------------------------
@@ -265,7 +276,9 @@ Explain in plain language, define jargon the first time you use it, and keep the
 Return ONLY a single JSON object with exactly these string/list fields:\n\
 {\"tldr\": \"one sentence\", \"explanation\": \"two to four short paragraphs\\n\\nseparated by blank lines\", \
 \"how_it_works\": \"a short numbered or step-by-step explanation\", \
-\"key_insights\": [\"3 to 6 concise takeaways\"], \"caveats\": [\"limitations or open questions\"]}\n\
+\"key_insights\": [\"3 to 6 concise takeaways\"], \"caveats\": [\"limitations or open questions\"], \
+\"insight_sources\": [\"one exact section heading per insight, in the order key_insights then caveats\"]}\n\
+For each insight and caveat, name the single paper section that best supports it; use an exact heading from the supplied Sections list, or an empty string if none fits.\n\
 Do not wrap the JSON in markdown fences. Do not use markdown headings. Keep each field concise.\n\
 Use double-quoted strings with escaped characters only; never put a literal line break inside a string.\n\
 Use \\n for paragraph breaks inside the explanation field.";
@@ -308,10 +321,17 @@ fn build_prompt(paper: &Paper) -> (String, String) {
         let names: Vec<String> = paper.concepts.iter().take(20).map(|c| c.name.clone()).collect();
         facts.push_str(&format!("\nKey concepts: {}\n", clip(&names.join(", "), 600)));
     }
+    let section_names: Vec<String> = paper.sections.iter()
+        .map(|s| s.heading.trim().to_string())
+        .filter(|s| !s.is_empty()).collect();
+    facts.push_str(&format!(
+        "\nSections (exact headings to use for insight_sources): {}\n",
+        clip(&section_names.join(" | "), 800),
+    ));
 
     let user = format!(
         "Write an AI-enhanced explanation of this paper using the facts below.\n\n{facts}\n\
-         Your answer: one JSON object with tldr, explanation, how_it_works, key_insights, caveats."
+         Your answer: one JSON object with tldr, explanation, how_it_works, key_insights, caveats, insight_sources."
     );
     (SYSTEM_PROMPT.to_string(), user)
 }

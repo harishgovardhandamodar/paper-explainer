@@ -725,6 +725,35 @@ a:hover { text-decoration: underline; }
 .corr-before { color: var(--text-faint); text-decoration: line-through; font-size: 11px; line-height: 1.45; }
 .corr-after { color: var(--green); font-size: 11px; line-height: 1.45; margin-top: 3px; }
 
+/* ---------- AI guardrails ---------- */
+.badge.unverified { background: var(--amber-soft); color: var(--amber); }
+.gr-toolbar { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.gr-toolbar label { display: flex; flex-direction: column; gap: 4px; min-width: 260px; flex: 1; }
+.gr-toolbar select { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 12px; max-width: 100%; }
+.gr-list { display: flex; flex-direction: column; gap: 12px; }
+.gr-card { padding: 15px 17px; border-left: 3px solid var(--border-strong); }
+.gr-card.unverified { border-left-color: var(--amber); }
+.gr-card.supported { border-left-color: var(--green); }
+.gr-card.contested { border-left-color: var(--rose); }
+.gr-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.gr-card-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gr-card-title .badge { font-size: 10px; text-transform: capitalize; }
+.gr-human { font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; color: var(--violet); }
+.gr-claim { font-family: var(--font-serif); font-size: 15px; line-height: 1.55; margin: 12px 0; }
+.gr-anchor { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; padding: 10px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.gr-anchor label { display: flex; flex-direction: column; gap: 4px; min-width: 190px; }
+.gr-anchor select { padding: 6px 9px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg); color: var(--text); font-size: 11.5px; }
+.gr-support { flex: 1; min-width: 140px; display: flex; flex-direction: column; gap: 5px; }
+.gr-support .qr-rate-bar { width: 100%; }
+.gr-evidence { display: flex; flex-direction: column; gap: 7px; margin: 10px 0 2px; }
+.gr-evidence > div { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.gr-ev-label { font-size: 9.5px; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; min-width: 96px; }
+.gr-ev-label.ok, .gr-term.ok { color: var(--green); }
+.gr-ev-label.warn, .gr-term.warn { color: var(--amber); }
+.gr-term { font-size: 10px; background: var(--bg-subtle); }
+.gr-override { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.gr-note { flex: 1; min-width: 180px; padding: 7px 9px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg); color: var(--text); font-size: 11.5px; }
+
 /* ---------- Reading triage ---------- */
 .facet-subhead { font-size: 10px; text-transform: uppercase; letter-spacing: .09em; font-weight: 700; color: var(--text-faint); padding: 10px 2px 2px; border-top: 1px solid var(--border); margin-top: 8px; }
 .triage-stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }

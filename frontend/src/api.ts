@@ -1,7 +1,8 @@
 import type {
   Annotation, CategoryDef, CitationEntry, CorrectionView, CreateAnnotation, CreateCorrection,
   CreateFollowUp, CreateProject, CreateProjectFollowUp, CreateSynthesis, EditableItem, FieldCorrection,
-  FollowUp, GlossaryEntry, GraphEdge, Health, HypothesisTracker, IngestRequest, KnowledgeGraph,
+  FollowUp, GlossaryEntry, GraphEdge, GuardrailReport, Health, HypothesisTracker, IngestRequest,
+  InsightAnchor, InsightVerification, KnowledgeGraph,
   LibraryQuery, LibraryResponse, LlmStatus, OpenQuestion, Paper, PaperReference, PaperSummary, Project,
   ProjectFollowUp, ProjectReadout, Provenance, ProvenanceReport, QualityReport, ReadingState,
   ResolveResponse, SearchResult, Stats, Synthesis, UpdateProject, UpdateProjectFollowUp,
@@ -124,6 +125,19 @@ export const api = {
     request<Paper>(`/papers/${encodeURIComponent(id)}/enhance`, { method: 'POST' }),
   clearEnhancement: (id: string) =>
     request<Paper>(`/papers/${encodeURIComponent(id)}/enhance`, { method: 'DELETE' }),
+  insightReport: (id: string) =>
+    request<GuardrailReport>(`/papers/${encodeURIComponent(id)}/insights`),
+  verifyInsight: (id: string, key: string) =>
+    request<InsightAnchor>(`/papers/${encodeURIComponent(id)}/insights/${encodeURIComponent(key)}/verify`,
+      { method: 'POST' }),
+  setInsightVerification: (id: string, key: string, verification: InsightVerification, note: string) =>
+    request<InsightAnchor>(`/papers/${encodeURIComponent(id)}/insights/${encodeURIComponent(key)}/verification`,
+      { method: 'PUT', body: JSON.stringify({ verification, note }) }),
+  setInsightSection: (id: string, key: string, section: string) =>
+    request<InsightAnchor>(`/papers/${encodeURIComponent(id)}/insights/${encodeURIComponent(key)}/section`,
+      { method: 'PUT', body: JSON.stringify({ section }) }),
+  rebuildInsightAnchors: (id: string) =>
+    request<{ changed: number }>(`/papers/${encodeURIComponent(id)}/insights/rebuild`, { method: 'POST' }),
   annotations: (paperId?: string) =>
     request<Annotation[]>(`/annotations${paperId ? `?paper_id=${encodeURIComponent(paperId)}` : ''}`),
   addAnnotation: (body: CreateAnnotation) =>

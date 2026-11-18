@@ -128,6 +128,7 @@ export interface PaperEnhancement {
   how_it_works: string;
   key_insights: string[];
   caveats: string[];
+  insight_anchors: InsightAnchor[];
   requested_model: string;
   served_model: string;
   gateway: string;
@@ -595,6 +596,38 @@ export interface UpdateProvenance {
   section?: string;
   note?: string;
   verified?: boolean;
+}
+
+// -- AI guardrails -----------------------------------------------------------
+
+export type InsightVerification = 'unverified' | 'supported' | 'contested';
+
+export interface InsightAnchor {
+  key: string;
+  category: string;
+  text: string;
+  section: string;
+  verification: InsightVerification;
+  human: boolean;
+  checked_at: string | null;
+  /** Lexical support signal in [0, 1], not a truth probability. */
+  support: number;
+  matched_terms: string[];
+  missing_terms: string[];
+  note: string;
+}
+
+export interface InsightView extends InsightAnchor {}
+
+export interface GuardrailReport {
+  paper_id: string;
+  has_enhancement: boolean;
+  sections: string[];
+  insights: InsightView[];
+  total: number;
+  verified: number;
+  contested: number;
+  unverified: number;
 }
 
 // -- Corrections & extraction quality ----------------------------------------
