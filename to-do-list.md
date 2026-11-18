@@ -24,7 +24,7 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 
 ## Follow up & act
 
-- [ ] **12. Follow-up board** (M) — Tasks/questions attached to claims with status, priority and notes.
+- [x] **12. Follow-up board** (M) — Tasks/questions attached to claims with status, priority and notes.
 - [ ] **13. Auto-extracted open questions** (S–M) — Mine limitations/future-work into reviewable follow-up candidates.
 - [ ] **14. Hypothesis tracker across papers** (M) — Aggregate hypothesis status across the corpus into a supported/contested/open timeline with counter-evidence.
 - [ ] **15. Cross-paper synthesis builder** (L) — Select N papers → stored synthesis: related-work narrative, comparison table, combined diagram.
@@ -63,3 +63,4 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 | 9 | Claim–evidence matrix | `14082f1` | Sortable hypotheses × experiments grid with linked findings in cells, status/confidence sorting, gaps-only filter and unsupported-claim highlighting |
 | 10 | What it does NOT show | `1c04035` | Three-column view separating stated author caveats, deterministic setup flags (baseline/dataset/budget/reproducibility/evidence links) and personal critique persisted as annotations |
 | 11 | Reproducibility checklist | `10f34cb` | Ten-check scored card per experiment (dataset, baseline, metrics, conditions, compute, seed, hyperparameters, code, steps, linked results), overall signal bar and detected artifact links |
+| 12 | Follow-up board | `e52a2f2` | New persisted `FollowUp` model and CRUD API; three-column open/in-progress/done board with priority, anchors, notes, tags, claim-derived suggestions and JSON/Markdown export |
