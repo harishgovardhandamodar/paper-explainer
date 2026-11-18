@@ -18,7 +18,7 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 - [x] **6. Linear "Read this paper" narrative** (M) — One scrolling story with sticky evidence rail, replacing tab-hopping.
 - [x] **7. Source-linked evidence panel** (M) — Every claim links to its exact section/paragraph in a highlighted source panel; page/line anchors where available.
 - [x] **8. Personal annotations & highlights** (M) — User notes anchored to entities/text ranges, tagged, timestamped, exported; distinct from extractor `notes`.
-- [ ] **9. Claim–evidence matrix** (S–M) — Sortable hypotheses × experiments × findings grid with status/confidence and unsupported-claim highlighting.
+- [x] **9. Claim–evidence matrix** (S–M) — Sortable hypotheses × experiments × findings grid with status/confidence and unsupported-claim highlighting.
 - [ ] **10. "What this paper does NOT show" view** (S) — Author caveats vs methodological limits vs my critique; prevents overclaiming for nontechnical readers.
 - [ ] **11. Reproducibility checklist** (S) — Turn `ExperimentSetup` into a scored card; flag missing code, seed, hyperparameters, compute; link artifacts.
 
@@ -60,3 +60,4 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 | 6 | Linear read narrative | `294f175` | Six-section scrolling story with IntersectionObserver-driven section tracking, sticky evidence rail and section progress bar |
 | 7 | Source-linked evidence panel | `2177dad` | Claim→section/paragraph matching with phrase highlighting, page/figure/line anchors, filter and prev/next navigation |
 | 8 | Personal annotations | `3f1cc5b` | New persisted `Annotation` model, CRUD API and workspace with entity/quote/section anchors, tags, colors, timestamps, JSON/Markdown export |
+| 9 | Claim–evidence matrix | `14082f1` | Sortable hypotheses × experiments grid with linked findings in cells, status/confidence sorting, gaps-only filter and unsupported-claim highlighting |
