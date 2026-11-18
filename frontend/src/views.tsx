@@ -10,7 +10,7 @@ import type {
   NodeKind, Paper, PaperSummary, Stats,
 } from './types';
 
-export type ViewKey = 'overview' | 'hypotheses' | 'experiments' | 'diagrams' | 'workflows' | 'findings' | 'graph' | 'library' | 'design' | 'ai' | 'present' | 'compare';
+export type ViewKey = 'overview' | 'hypotheses' | 'experiments' | 'diagrams' | 'workflows' | 'findings' | 'graph' | 'library' | 'design' | 'ai' | 'present' | 'compare' | 'export';
 
 /* -------------------------------- Overview -------------------------------- */
 export function OverviewView({ paper, stats, onNavigate }: {

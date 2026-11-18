@@ -2,6 +2,7 @@ pub mod api;
 pub mod categories;
 pub mod error;
 pub mod explain;
+pub mod exports;
 pub mod graph;
 pub mod ingest;
 pub mod llm;
@@ -27,6 +28,7 @@ pub fn build_router(state: api::ApiState, dist: &Path) -> Router {
         .route("/api/papers/{id}/refresh", post(api::refresh))
         .route("/api/papers/{id}/enhance", post(api::enhance_paper).delete(api::clear_enhancement))
         .route("/api/papers/{id}/export", get(api::export_markdown))
+        .route("/api/papers/{id}/export/{format}", get(api::export_format))
         .route("/api/graph", get(api::get_graph))
         .route("/api/graph/mermaid", get(api::get_graph_mermaid))
         .route("/api/graph/edges", post(api::add_edge))

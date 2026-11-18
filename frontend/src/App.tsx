@@ -6,6 +6,7 @@ import { AudienceSwitch } from './components/AudienceSwitch';
 import { AiView } from './components/AiView';
 import { CompareView } from './components/CompareView';
 import { DesignView } from './components/DesignView';
+import { ExportView } from './components/ExportView';
 import { PresentView } from './components/PresentView';
 import { relativeDate } from './components/ui';
 import { toggleTheme, useTheme } from './theme';
@@ -25,6 +26,7 @@ const NAV: { key: ViewKey; label: string; icon: string }[] = [
   { key: 'ai', label: 'AI insights', icon: '✺' },
   { key: 'graph', label: 'Knowledge graph', icon: '⁂' },
   { key: 'compare', label: 'Compare', icon: '◫' },
+  { key: 'export', label: 'Export', icon: '↧' },
   { key: 'present', label: 'Present', icon: '▷' },
 ];
 
@@ -259,7 +261,7 @@ export default function App() {
               </div>
             )}
           </div>
-          {paper && view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && <>
+          {paper && view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && <>
             <a className="btn sm" href={api.exportUrl(paper.id)} target="_blank" rel="noreferrer">Export MD</a>
             <button className="btn sm" onClick={handleRefresh} title="Re-import from source">↻</button>
           </>}
@@ -288,7 +290,9 @@ export default function App() {
             <CompareView papers={papers} graph={graph} activePaperId={paper?.id ?? null}
               onOpen={(id) => void openPaper(id)} />
           )}
-          {view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && paper && stats && (
+          {view === 'export' && paper && <ExportView paper={paper} onNotify={notify} />}
+          {view === 'export' && !paper && <div className="empty"><div className="empty-icon">◌</div><strong>No paper selected</strong></div>}
+          {view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && paper && stats && (
             <>
               {view === 'overview' && <OverviewView paper={paper} stats={stats} onNavigate={setView} />}
               {view === 'hypotheses' && <HypothesesView paper={paper} />}
@@ -299,7 +303,7 @@ export default function App() {
               {view === 'graph' && <GraphView graph={graph} activePaperId={paper.id} onAddEdge={addEdge} />}
             </>
           )}
-          {view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && !paper && (
+          {view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && !paper && (
             <div className="empty"><div className="empty-icon">◌</div><strong>No paper selected</strong>
               <div style={{ marginTop: 10 }}><button className="btn primary" onClick={() => setDialog(true)}>Add your first paper</button></div>
             </div>

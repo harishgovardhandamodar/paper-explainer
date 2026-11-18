@@ -258,6 +258,29 @@ pub async fn export_markdown(
     Ok(resp)
 }
 
+/// Additional export formats: bibtex, findings.csv, findings.json, deck.mmd, brief.html.
+pub async fn export_format(
+    State(state): State<ApiState>, Path((id, format)): Path<(String, String)>,
+) -> ApiResult<Response> {
+    let p = state.store.get_paper(&id)?;
+    let (mime, body, inline) = match format.as_str() {
+        "bibtex" => ("application/x-bibtex; charset=utf-8", crate::exports::bibtex(&p), false),
+        "findings.csv" => ("text/csv; charset=utf-8", crate::exports::findings_csv(&p), false),
+        "findings.json" => ("application/json; charset=utf-8", crate::exports::findings_json(&p), false),
+        "deck.mmd" => ("text/markdown; charset=utf-8", crate::exports::deck(&p), false),
+        "brief.html" => ("text/html; charset=utf-8", crate::exports::brief_html(&p), true),
+        _ => return Err(AppError::BadRequest(format!("unsupported export format '{format}'"))),
+    };
+    let disposition = if inline { "inline" } else { "attachment" };
+    let mut resp = body.into_response();
+    let headers = [
+        (header::CONTENT_TYPE, mime),
+        (header::CONTENT_DISPOSITION, disposition),
+    ];
+    for (k, v) in headers { resp.headers_mut().insert(k, v.parse().unwrap()); }
+    Ok(resp)
+}
+
 pub async fn reset(State(state): State<ApiState>) -> ApiResult<StatusCode> {
     state.store.reset()?;
     Ok(StatusCode::NO_CONTENT)

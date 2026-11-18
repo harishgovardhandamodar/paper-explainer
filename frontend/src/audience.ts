@@ -99,6 +99,7 @@ const PLAIN_LABELS: Record<string, string> = {
   'AI insights': 'AI summary',
   Present: 'Slideshow',
   Compare: 'Side by side',
+  Export: 'Share & save',
   'The question': 'The big question',
   Method: 'How they did it',
   Limits: 'What it does not show',

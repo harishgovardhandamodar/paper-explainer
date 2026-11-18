@@ -52,5 +52,7 @@ export const api = {
     request<GraphEdge>('/graph/edges', { method: 'POST', body: JSON.stringify(edge) }),
   search: (q: string) => request<SearchResult[]>(`/search?q=${encodeURIComponent(q)}`),
   exportUrl: (id: string) => `${BASE}/papers/${encodeURIComponent(id)}/export`,
+  formatUrl: (id: string, format: 'bibtex' | 'findings.csv' | 'findings.json' | 'deck.mmd' | 'brief.html') =>
+    `${BASE}/papers/${encodeURIComponent(id)}/export/${format}`,
   reset: () => request<void>('/reset', { method: 'POST' }),
 };
