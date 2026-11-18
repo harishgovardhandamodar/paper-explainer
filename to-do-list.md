@@ -15,7 +15,7 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 
 ## Read & understand
 
-- [ ] **6. Linear "Read this paper" narrative** (M) — One scrolling story with sticky evidence rail, replacing tab-hopping.
+- [x] **6. Linear "Read this paper" narrative** (M) — One scrolling story with sticky evidence rail, replacing tab-hopping.
 - [ ] **7. Source-linked evidence panel** (M) — Every claim links to its exact section/paragraph in a highlighted source panel; page/line anchors where available.
 - [ ] **8. Personal annotations & highlights** (M) — User notes anchored to entities/text ranges, tagged, timestamped, exported; distinct from extractor `notes`.
 - [ ] **9. Claim–evidence matrix** (S–M) — Sortable hypotheses × experiments × findings grid with status/confidence and unsupported-claim highlighting.
@@ -57,3 +57,4 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 | 3 | Compare-papers view | `1a72e29` | 2–N picker, aligned dimension matrix with differences-only filter, shared-bridge list and focused force graph |
 | 4 | One-pager + multi-format export | `454d5be` | Self-contained print-ready HTML brief, BibTeX, findings CSV/JSON, Slidev/Marp deck; Rust formatters with 5 new unit tests; Export view with preview and share link |
 | 5 | Focus / spotlight mode | `dab7f3e` | Reusable spotlight controller in hypotheses, findings, steps and diagrams; dim-unselected, fullscreen diagram, count-up/countdown presenter timer, Esc to exit |
+| 6 | Linear read narrative | `294f175` | Six-section scrolling story with IntersectionObserver-driven section tracking, sticky evidence rail and section progress bar |
