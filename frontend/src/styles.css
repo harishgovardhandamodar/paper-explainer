@@ -560,6 +560,25 @@ a:hover { text-decoration: underline; }
 .ai-preview { padding: 16px 20px; align-items: center; }
 .ai-preview-tldr { font-family: var(--font-serif); font-size: 16px; line-height: 1.5; margin-top: 6px; }
 
+/* ---------- Focus / spotlight ---------- */
+.view-tools { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px; }
+.entity-card, .step, .card { transition: opacity .22s ease, filter .22s ease, box-shadow .22s ease; }
+.spot-active .spot-dimmed { opacity: .16; filter: grayscale(.8); pointer-events: none; user-select: none; }
+.spot-active .spotlit { box-shadow: 0 0 0 2px var(--accent), var(--shadow-lg); position: relative; z-index: 2; cursor: default; }
+.spot-diagram:fullscreen { background: var(--bg); display: grid; place-items: center; padding: 32px; }
+.spot-diagram:fullscreen .mermaid-box { width: 100%; max-height: 88vh; }
+.spot-bar { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 60; display: flex; align-items: center; gap: 10px; max-width: calc(100vw - 32px); padding: 9px 12px; background: var(--tooltip-bg); color: var(--tooltip-text); border-radius: 12px; box-shadow: var(--shadow-lg); }
+.spot-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px rgba(99, 102, 241, .25); flex: 0 0 auto; }
+.spot-label { font-size: 12px; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.spot-timer { display: flex; align-items: center; gap: 5px; padding: 0 8px; border-left: 1px solid rgba(255,255,255,.2); border-right: 1px solid rgba(255,255,255,.2); }
+.spot-clock { font-family: var(--font-mono); font-size: 16px; font-weight: 700; min-width: 58px; text-align: center; }
+.spot-clock.running { color: #6ee7b7; }
+.spot-clock.done { color: #fca5a5; }
+.spot-presets { display: flex; gap: 3px; }
+.spot-bar .btn { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.2); color: inherit; }
+.spot-bar .btn:hover { background: rgba(255,255,255,.2); }
+.spot-bar .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
 /* ---------- Export ---------- */
 .exp-hero { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; margin-bottom: 18px; }
 .exp-title { font-family: var(--font-serif); font-size: 21px; margin: 6px 0 4px; font-weight: 600; }

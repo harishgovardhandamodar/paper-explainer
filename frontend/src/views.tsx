@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api';
 import { audienceDef, lensLabel, useAudience } from './audience';
 import { GlossaryCard, LensHint, TechnicalDetails } from './components/LensBits';
 import { MermaidDiagram } from './components/MermaidDiagram';
+import { FocusButton, spotClass, SpotlightBar, useSpotlight } from './components/Spotlight';
 import { ForceGraph, NODE_COLORS, NODE_LABELS } from './components/KnowledgeGraph';
 import { Badge, Chips, Empty, PageHead, SectionDivider, StatCard, relativeDate } from './components/ui';
 import type {
@@ -111,15 +112,17 @@ export function OverviewView({ paper, stats, onNavigate }: {
 export function HypothesesView({ paper }: { paper: Paper }) {
   const audience = useAudience();
   const def = audienceDef(audience);
+  const spot = useSpotlight();
   return (
     <div className="content-inner">
       <LensHint audience={audience} />
       <PageHead eyebrow={lensLabel(audience, 'Claims under test')} title={lensLabel(audience, 'Hypotheses')}>
         Each claim, its plain-language version, and the evidence the paper brings to bear on it.
       </PageHead>
-      <div className="grid-2">
+      <div className="view-tools"><FocusButton spot={spot} label="Spotlight a claim" /></div>
+      <div className={`grid-2 ${spot.active ? 'spot-active' : ''}`}>
         {paper.hypotheses.map((h, i) => (
-          <div key={h.id} className="card entity-card">
+          <div key={h.id} className={`card entity-card ${spotClass(spot, h.id)}`} onClick={() => spot.select(h.id)}>
             <div className="ec-head">
               {def.showIds && <span className="ec-id">H{i + 1} · {h.id}</span>}
               <Badge tone={h.status}>{h.status.replace('_', ' ')}</Badge>
@@ -153,6 +156,12 @@ export function HypothesesView({ paper }: { paper: Paper }) {
         ))}
         {!paper.hypotheses.length && <Empty title="No hypotheses found" />}
       </div>
+      {spot.active && (
+        <SpotlightBar
+          label={paper.hypotheses.find((h) => h.id === spot.id)?.statement ?? 'Select a claim to spotlight'}
+          onExit={spot.exit}
+        />
+      )}
     </div>
   );
 }
@@ -251,6 +260,8 @@ export function DiagramsView({ paper }: { paper: Paper }) {
   const [active, setActive] = useState(0);
   const audience = useAudience();
   const diagram = paper.diagrams[active];
+  const spot = useSpotlight();
+  const diagramRef = useRef<HTMLDivElement>(null);
   if (!diagram) return <div className="content-inner"><Empty title="No diagrams available" /></div>;
   return (
     <div className="content-inner">
@@ -258,19 +269,29 @@ export function DiagramsView({ paper }: { paper: Paper }) {
       <PageHead eyebrow="Visual explanations" title={lensLabel(audience, 'Diagrams')}>
         Mermaid diagrams recreate the system, the primitive taxonomy, the attack pipeline and the evaluation flow.
       </PageHead>
+      <div className="view-tools">
+        <FocusButton spot={spot} label="Spotlight diagram" />
+        <button className="btn sm" onClick={() => {
+          const el = diagramRef.current;
+          if (!el) return;
+          if (document.fullscreenElement) void document.exitFullscreen();
+          else void el.requestFullscreen?.().catch(() => undefined);
+        }} title="Fullscreen this diagram">⛶ Fullscreen diagram</button>
+      </div>
       <div className="diagram-tabs">
         {paper.diagrams.map((d, i) => (
           <button key={d.id} className={`diagram-tab ${i === active ? 'active' : ''}`} onClick={() => setActive(i)}>{d.title}</button>
         ))}
       </div>
-      <div className="card">
+      <div className={`card ${spot.active ? 'spotlit' : ''}`}>
         <div className="spread" style={{ marginBottom: 14 }}>
           <div><h2 style={{ margin: 0, fontFamily: 'var(--font-serif)', fontSize: 21 }}>{diagram.title}</h2>
             <span className="chip mono" style={{ marginTop: 6, display: 'inline-block' }}>{diagram.kind}</span></div>
           <span className="small muted" style={{ maxWidth: 420, textAlign: 'right' }}>{diagram.caption}</span>
         </div>
-        <MermaidDiagram code={diagram.mermaid} />
+        <div ref={diagramRef} className="spot-diagram"><MermaidDiagram code={diagram.mermaid} bare={spot.active} /></div>
       </div>
+      {spot.active && <SpotlightBar label={diagram.title} diagramRef={diagramRef} onExit={spot.exit} />}
     </div>
   );
 }
@@ -280,6 +301,8 @@ export function WorkflowsView({ paper }: { paper: Paper }) {
   const [active, setActive] = useState(0);
   const audience = useAudience();
   const wf = paper.workflows[active];
+  const spot = useSpotlight();
+  const diagramRef = useRef<HTMLDivElement>(null);
   if (!wf) return <div className="content-inner"><Empty title="No workflows available" /></div>;
   return (
     <div className="content-inner">
@@ -287,6 +310,7 @@ export function WorkflowsView({ paper }: { paper: Paper }) {
       <PageHead eyebrow="Recreated workflows" title={lensLabel(audience, 'Workflows')}>
         Each workflow reconstructs a process from the paper: inputs, actions and outputs at every stage.
       </PageHead>
+      <div className="view-tools"><FocusButton spot={spot} label="Spotlight a step" /></div>
       <div className="diagram-tabs">
         {paper.workflows.map((w, i) => (
           <button key={w.id} className={`diagram-tab ${i === active ? 'active' : ''}`} onClick={() => setActive(i)}>{w.title}</button>
@@ -298,9 +322,9 @@ export function WorkflowsView({ paper }: { paper: Paper }) {
           <Badge tone={wf.category === 'attack' ? 'rejected' : wf.category === 'defense' ? 'supported' : ''}>{wf.category}</Badge>
         </div>
         <p className="muted" style={{ fontSize: 13 }}>{wf.description}</p>
-        <div className="steps">
+        <div className={`steps ${spot.active ? 'spot-active' : ''}`}>
           {wf.steps.map((s, i) => (
-            <div className="step" key={s.id}>
+            <div className={`step ${spotClass(spot, s.id)}`} key={s.id} onClick={() => spot.select(s.id)}>
               <div className="step-num">{i + 1}</div>
               <div>
                 <div className="step-title">{s.title}</div>
@@ -313,8 +337,15 @@ export function WorkflowsView({ paper }: { paper: Paper }) {
             </div>
           ))}
         </div>
-        {wf.mermaid && <><SectionDivider title="Diagram" /><MermaidDiagram code={wf.mermaid} /></>}
+        {wf.mermaid && <><SectionDivider title="Diagram" /><div ref={diagramRef} className="spot-diagram"><MermaidDiagram code={wf.mermaid} bare={spot.active} /></div></>}
       </div>
+      {spot.active && (
+        <SpotlightBar
+          label={wf.steps.find((s) => s.id === spot.id)?.title ?? 'Select a step to spotlight'}
+          diagramRef={wf.mermaid ? diagramRef : undefined}
+          onExit={spot.exit}
+        />
+      )}
     </div>
   );
 }
@@ -323,15 +354,17 @@ export function WorkflowsView({ paper }: { paper: Paper }) {
 export function FindingsView({ paper }: { paper: Paper }) {
   const audience = useAudience();
   const def = audienceDef(audience);
+  const spot = useSpotlight();
   return (
     <div className="content-inner">
       <LensHint audience={audience} />
       <PageHead eyebrow={lensLabel(audience, 'What the paper found')} title={lensLabel(audience, 'Key findings')}>
         Claims with their supporting numbers and any caveats the authors attach to them.
       </PageHead>
-      <div className="grid-2">
+      <div className="view-tools"><FocusButton spot={spot} label="Spotlight a claim" /></div>
+      <div className={`grid-2 ${spot.active ? 'spot-active' : ''}`}>
         {paper.findings.map((f, i) => (
-          <div key={f.id} className="card entity-card">
+          <div key={f.id} className={`card entity-card ${spotClass(spot, f.id)}`} onClick={() => spot.select(f.id)}>
             <div className="ec-head">
               {def.showIds && <span className="ec-id">F{i + 1} · {f.id}</span>}
               <Badge tone={f.importance}>{f.importance}</Badge>
@@ -358,6 +391,12 @@ export function FindingsView({ paper }: { paper: Paper }) {
         ))}
         {!paper.findings.length && <Empty title="No findings extracted" />}
       </div>
+      {spot.active && (
+        <SpotlightBar
+          label={paper.findings.find((f) => f.id === spot.id)?.claim ?? 'Select a claim to spotlight'}
+          onExit={spot.exit}
+        />
+      )}
     </div>
   );
 }
