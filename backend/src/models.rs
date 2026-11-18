@@ -651,6 +651,65 @@ pub struct UpdateFollowUp {
 }
 
 // ---------------------------------------------------------------------------
+// Cross-paper hypothesis tracker
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EvidenceLink {
+    pub id: String,
+    pub claim: String,
+    pub caveat: Option<String>,
+    /// True when the finding qualifies or contradicts the hypothesis.
+    pub counter: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HypothesisEvent {
+    pub paper_id: String,
+    pub paper_title: String,
+    pub paper_year: Option<u32>,
+    pub added_at: DateTime<Utc>,
+    pub hypothesis_id: String,
+    pub statement: String,
+    pub simplified: String,
+    pub status: HypothesisStatus,
+    pub confidence: Option<String>,
+    pub section: Option<String>,
+    pub evidence: Vec<EvidenceLink>,
+    pub counter_evidence: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HypothesisCluster {
+    pub id: String,
+    pub label: String,
+    pub keywords: Vec<String>,
+    /// supported / contested / rejected / open / mixed
+    pub verdict: String,
+    pub supported: usize,
+    pub partial: usize,
+    pub open: usize,
+    pub rejected: usize,
+    pub papers: Vec<String>,
+    pub events: Vec<HypothesisEvent>,
+    pub counter_points: Vec<String>,
+    pub first_seen: DateTime<Utc>,
+    pub last_seen: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HypothesisTracker {
+    pub clusters: Vec<HypothesisCluster>,
+    /// Every hypothesis event across the corpus, newest paper first.
+    pub timeline: Vec<HypothesisEvent>,
+    pub total_hypotheses: usize,
+    pub papers: usize,
+    pub supported: usize,
+    pub contested: usize,
+    pub open: usize,
+}
+
+// ---------------------------------------------------------------------------
 // Auto-extracted open questions
 // ---------------------------------------------------------------------------
 

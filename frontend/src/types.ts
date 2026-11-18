@@ -220,6 +220,54 @@ export interface OpenQuestion {
   target: string;
 }
 
+export interface EvidenceLink {
+  id: string;
+  claim: string;
+  caveat: string | null;
+  counter: boolean;
+}
+
+export interface HypothesisEvent {
+  paper_id: string;
+  paper_title: string;
+  paper_year: number | null;
+  added_at: string;
+  hypothesis_id: string;
+  statement: string;
+  simplified: string;
+  status: HypothesisStatus;
+  confidence: string | null;
+  section: string | null;
+  evidence: EvidenceLink[];
+  counter_evidence: string[];
+}
+
+export interface HypothesisCluster {
+  id: string;
+  label: string;
+  keywords: string[];
+  verdict: string;
+  supported: number;
+  partial: number;
+  open: number;
+  rejected: number;
+  papers: string[];
+  events: HypothesisEvent[];
+  counter_points: string[];
+  first_seen: string;
+  last_seen: string;
+}
+
+export interface HypothesisTracker {
+  clusters: HypothesisCluster[];
+  timeline: HypothesisEvent[];
+  total_hypotheses: number;
+  papers: number;
+  supported: number;
+  contested: number;
+  open: number;
+}
+
 export interface GraphNode {
   id: string;
   kind: NodeKind;

@@ -326,6 +326,13 @@ pub async fn list_follow_ups(
     Ok(Json(state.store.follow_ups(q.paper_id.as_deref())?))
 }
 
+/// All hypotheses in the corpus, clustered into shared claims with status
+/// history and counter-evidence. Read-only and derived on request.
+pub async fn hypothesis_tracker(State(state): State<ApiState>) -> ApiResult<Json<HypothesisTracker>> {
+    let store = state.store.read()?;
+    Ok(Json(crate::tracker::build_tracker(&store.papers)))
+}
+
 pub async fn create_follow_up(
     State(state): State<ApiState>, Json(req): Json<CreateFollowUp>,
 ) -> ApiResult<Json<FollowUp>> {

@@ -1,7 +1,7 @@
 import type {
   Annotation, CategoryDef, CreateAnnotation, CreateFollowUp, FollowUp, GraphEdge, Health,
-  IngestRequest, KnowledgeGraph, LibraryQuery, LibraryResponse, LlmStatus, OpenQuestion, Paper,
-  PaperSummary, SearchResult, Stats,
+  HypothesisTracker, IngestRequest, KnowledgeGraph, LibraryQuery, LibraryResponse, LlmStatus,
+  OpenQuestion, Paper, PaperSummary, SearchResult, Stats,
 } from './types';
 
 const BASE = '/api';
@@ -43,6 +43,7 @@ export const api = {
     request<void>(`/papers/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   openQuestions: (id: string) =>
     request<OpenQuestion[]>(`/papers/${encodeURIComponent(id)}/open-questions`),
+  hypothesisTracker: () => request<HypothesisTracker>('/hypothesis-tracker'),
   refreshPaper: (id: string) =>
     request<Paper>(`/papers/${encodeURIComponent(id)}/refresh`, { method: 'POST' }),
   llmStatus: () => request<LlmStatus>('/llm/status'),
