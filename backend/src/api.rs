@@ -281,6 +281,36 @@ pub async fn export_format(
     Ok(resp)
 }
 
+#[derive(Deserialize, Default)]
+pub struct AnnotationQuery {
+    pub paper_id: Option<String>,
+}
+
+pub async fn list_annotations(
+    State(state): State<ApiState>, Query(q): Query<AnnotationQuery>,
+) -> ApiResult<Json<Vec<Annotation>>> {
+    Ok(Json(state.store.annotations(q.paper_id.as_deref())?))
+}
+
+pub async fn create_annotation(
+    State(state): State<ApiState>, Json(req): Json<CreateAnnotation>,
+) -> ApiResult<Json<Annotation>> {
+    Ok(Json(state.store.add_annotation(req)?))
+}
+
+pub async fn update_annotation(
+    State(state): State<ApiState>, Path(id): Path<String>, Json(req): Json<UpdateAnnotation>,
+) -> ApiResult<Json<Annotation>> {
+    Ok(Json(state.store.update_annotation(&id, req)?))
+}
+
+pub async fn delete_annotation(
+    State(state): State<ApiState>, Path(id): Path<String>,
+) -> ApiResult<StatusCode> {
+    state.store.delete_annotation(&id)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 pub async fn reset(State(state): State<ApiState>) -> ApiResult<StatusCode> {
     state.store.reset()?;
     Ok(StatusCode::NO_CONTENT)

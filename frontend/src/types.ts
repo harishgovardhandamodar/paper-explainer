@@ -158,6 +158,31 @@ export interface Paper extends PaperSummary {
   enhancement: PaperEnhancement | null;
 }
 
+export type AnnotationTarget = 'entity' | 'quote' | 'section';
+
+export interface Annotation {
+  id: string;
+  paper_id: string;
+  target_kind: AnnotationTarget;
+  target: string;
+  quote: string;
+  body: string;
+  tags: string[];
+  color: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateAnnotation {
+  paper_id: string;
+  target_kind: AnnotationTarget;
+  target: string;
+  quote: string;
+  body: string;
+  tags: string[];
+  color: string;
+}
+
 export interface GraphNode {
   id: string;
   kind: NodeKind;

@@ -89,6 +89,7 @@ const PLAIN_LABELS: Record<string, string> = {
   Hypotheses: 'What they expected',
   'Claims under test': 'What they expected',
   'Evidence panel': 'Where it says that',
+  Annotations: 'Your notes',
   'What was claimed': 'What they expected',
   Experiments: 'How they tested it',
   Findings: 'What they found',

@@ -8,6 +8,8 @@ use crate::error::{AppError, AppResult};
 use crate::graph;
 use crate::models::*;
 use crate::seed::{seed_paper, SEED_ID};
+use crate::util::make_id;
+use chrono::Utc;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
@@ -191,6 +193,74 @@ impl StoreHandle {
         self.rebuild_graph()?;
         self.flush()?;
         Ok(edge)
+    }
+
+    pub fn annotations(&self, paper_id: Option<&str>) -> AppResult<Vec<Annotation>> {
+        let store = self.read()?;
+        Ok(store.annotations.iter()
+            .filter(|a| paper_id.map_or(true, |id| a.paper_id == id))
+            .cloned().collect())
+    }
+
+    pub fn add_annotation(&self, req: CreateAnnotation) -> AppResult<Annotation> {
+        if req.body.trim().is_empty() {
+            return Err(AppError::BadRequest("annotation body cannot be empty".into()));
+        }
+        {
+            let store = self.read()?;
+            if store.find_paper(&req.paper_id).is_none() {
+                return Err(AppError::NotFound(format!("paper '{}'", req.paper_id)));
+            }
+        }
+        let now = Utc::now();
+        let id = make_id("ann", &format!("{}-{}-{}", req.paper_id, req.target, now.timestamp_millis()));
+        let annotation = Annotation {
+            id,
+            paper_id: req.paper_id,
+            target_kind: req.target_kind,
+            target: req.target,
+            quote: req.quote,
+            body: req.body.trim().to_string(),
+            tags: req.tags,
+            color: if req.color.is_empty() { "amber".into() } else { req.color },
+            created_at: now,
+            updated_at: now,
+        };
+        { self.write()?.annotations.push(annotation.clone()); }
+        self.flush()?;
+        Ok(annotation)
+    }
+
+    pub fn update_annotation(&self, id: &str, req: UpdateAnnotation) -> AppResult<Annotation> {
+        let updated = {
+            let mut store = self.write()?;
+            let a = store.annotations.iter_mut().find(|a| a.id == id)
+                .ok_or_else(|| AppError::NotFound(format!("annotation '{id}'")))?;
+            if let Some(body) = req.body {
+                if body.trim().is_empty() {
+                    return Err(AppError::BadRequest("annotation body cannot be empty".into()));
+                }
+                a.body = body.trim().to_string();
+            }
+            if let Some(tags) = req.tags { a.tags = tags; }
+            if let Some(color) = req.color { a.color = color; }
+            a.updated_at = Utc::now();
+            a.clone()
+        };
+        self.flush()?;
+        Ok(updated)
+    }
+
+    pub fn delete_annotation(&self, id: &str) -> AppResult<()> {
+        {
+            let mut store = self.write()?;
+            let before = store.annotations.len();
+            store.annotations.retain(|a| a.id != id);
+            if store.annotations.len() == before {
+                return Err(AppError::NotFound(format!("annotation '{id}'")));
+            }
+        }
+        self.flush()
     }
 
     pub fn reset(&self) -> AppResult<()> {

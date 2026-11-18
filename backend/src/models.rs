@@ -17,11 +17,16 @@ pub struct Store {
     pub graph: KnowledgeGraph,
     /// User-added edges survive graph rebuilds.
     pub custom_edges: Vec<GraphEdge>,
+    /// Personal notes and highlights, kept separate from extractor `notes`.
+    pub annotations: Vec<Annotation>,
 }
 
 impl Store {
     pub fn new() -> Self {
-        Self { version: 1, papers: Vec::new(), graph: KnowledgeGraph::default(), custom_edges: Vec::new() }
+        Self {
+            version: 1, papers: Vec::new(), graph: KnowledgeGraph::default(),
+            custom_edges: Vec::new(), annotations: Vec::new(),
+        }
     }
 
     pub fn find_paper(&self, id: &str) -> Option<&Paper> {
@@ -497,6 +502,73 @@ impl Default for GraphEdge {
 pub struct KnowledgeGraph {
     pub nodes: Vec<GraphNode>,
     pub edges: Vec<GraphEdge>,
+}
+
+// ---------------------------------------------------------------------------
+// Personal annotations
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AnnotationTarget {
+    /// An extracted entity (hypothesis, finding, experiment, concept).
+    Entity,
+    /// A highlighted range of source text.
+    Quote,
+    /// A whole section of the paper.
+    Section,
+}
+
+impl Default for AnnotationTarget {
+    fn default() -> Self { Self::Entity }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Annotation {
+    pub id: String,
+    pub paper_id: String,
+    pub target_kind: AnnotationTarget,
+    /// Entity id, section heading or a stable quote locator.
+    pub target: String,
+    /// The text the note is anchored to.
+    pub quote: String,
+    pub body: String,
+    pub tags: Vec<String>,
+    pub color: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl Default for Annotation {
+    fn default() -> Self {
+        let now = Utc::now();
+        Self {
+            id: String::new(), paper_id: String::new(), target_kind: AnnotationTarget::Entity,
+            target: String::new(), quote: String::new(), body: String::new(), tags: Vec::new(),
+            color: "amber".into(), created_at: now, updated_at: now,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct CreateAnnotation {
+    pub paper_id: String,
+    pub target_kind: AnnotationTarget,
+    pub target: String,
+    pub quote: String,
+    pub body: String,
+    pub tags: Vec<String>,
+    pub color: String,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct UpdateAnnotation {
+    pub body: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub color: Option<String>,
 }
 
 // ---------------------------------------------------------------------------

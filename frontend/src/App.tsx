@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from './api';
 import { lensLabel, useAudience } from './audience';
 import { AddPaperDialog } from './components/AddPaperDialog';
+import { AnnotationsView } from './components/AnnotationsView';
 import { AudienceSwitch } from './components/AudienceSwitch';
 import { AiView } from './components/AiView';
 import { CompareView } from './components/CompareView';
@@ -22,6 +23,7 @@ const NAV: { key: ViewKey; label: string; icon: string }[] = [
   { key: 'overview', label: 'Overview', icon: '⌂' },
   { key: 'read', label: 'Read paper', icon: '¶' },
   { key: 'source', label: 'Source evidence', icon: '§' },
+  { key: 'annotations', label: 'Annotations', icon: '✎' },
   { key: 'hypotheses', label: 'Hypotheses', icon: '◎' },
   { key: 'experiments', label: 'Experiments', icon: '⚗' },
   { key: 'diagrams', label: 'Diagrams', icon: '◇' },
@@ -301,6 +303,7 @@ export default function App() {
               {view === 'overview' && <OverviewView paper={paper} stats={stats} onNavigate={setView} />}
               {view === 'read' && <ReadView paper={paper} onNavigate={setView} />}
               {view === 'source' && <SourceView paper={paper} onNavigate={setView} />}
+              {view === 'annotations' && <AnnotationsView paper={paper} onNotify={notify} />}
               {view === 'hypotheses' && <HypothesesView paper={paper} />}
               {view === 'experiments' && <ExperimentsView paper={paper} />}
               {view === 'diagrams' && <DiagramsView paper={paper} />}
