@@ -16,7 +16,7 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 ## Read & understand
 
 - [x] **6. Linear "Read this paper" narrative** (M) — One scrolling story with sticky evidence rail, replacing tab-hopping.
-- [ ] **7. Source-linked evidence panel** (M) — Every claim links to its exact section/paragraph in a highlighted source panel; page/line anchors where available.
+- [x] **7. Source-linked evidence panel** (M) — Every claim links to its exact section/paragraph in a highlighted source panel; page/line anchors where available.
 - [ ] **8. Personal annotations & highlights** (M) — User notes anchored to entities/text ranges, tagged, timestamped, exported; distinct from extractor `notes`.
 - [ ] **9. Claim–evidence matrix** (S–M) — Sortable hypotheses × experiments × findings grid with status/confidence and unsupported-claim highlighting.
 - [ ] **10. "What this paper does NOT show" view** (S) — Author caveats vs methodological limits vs my critique; prevents overclaiming for nontechnical readers.
@@ -58,3 +58,4 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 | 4 | One-pager + multi-format export | `454d5be` | Self-contained print-ready HTML brief, BibTeX, findings CSV/JSON, Slidev/Marp deck; Rust formatters with 5 new unit tests; Export view with preview and share link |
 | 5 | Focus / spotlight mode | `dab7f3e` | Reusable spotlight controller in hypotheses, findings, steps and diagrams; dim-unselected, fullscreen diagram, count-up/countdown presenter timer, Esc to exit |
 | 6 | Linear read narrative | `294f175` | Six-section scrolling story with IntersectionObserver-driven section tracking, sticky evidence rail and section progress bar |
+| 7 | Source-linked evidence panel | `2177dad` | Claim→section/paragraph matching with phrase highlighting, page/figure/line anchors, filter and prev/next navigation |
