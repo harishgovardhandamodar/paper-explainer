@@ -92,6 +92,8 @@ const PLAIN_LABELS: Record<string, string> = {
   Annotations: 'Your notes',
   'Limits & critique': 'What it cannot tell you',
   Reproducibility: 'Could others repeat it?',
+  'Follow-up board': 'Questions to chase',
+  'Follow-ups': 'Next steps',
   'What this paper does NOT show': 'What this paper cannot tell you',
   'Claim matrix': 'Claim checker',
   'Claim–evidence matrix': 'What supports each claim',

@@ -183,6 +183,32 @@ export interface CreateAnnotation {
   color: string;
 }
 
+export type FollowUpStatus = 'open' | 'in_progress' | 'done';
+export type FollowUpPriority = 'high' | 'medium' | 'low';
+
+export interface FollowUp {
+  id: string;
+  paper_id: string;
+  target: string;
+  title: string;
+  notes: string;
+  status: FollowUpStatus;
+  priority: FollowUpPriority;
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateFollowUp {
+  paper_id: string;
+  target: string;
+  title: string;
+  notes: string;
+  status: FollowUpStatus;
+  priority: FollowUpPriority;
+  tags: string[];
+}
+
 export interface GraphNode {
   id: string;
   kind: NodeKind;

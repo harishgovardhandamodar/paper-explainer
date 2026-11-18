@@ -31,6 +31,8 @@ pub fn build_router(state: api::ApiState, dist: &Path) -> Router {
         .route("/api/papers/{id}/export/{format}", get(api::export_format))
         .route("/api/annotations", get(api::list_annotations).post(api::create_annotation))
         .route("/api/annotations/{id}", put(api::update_annotation).delete(api::delete_annotation))
+        .route("/api/followups", get(api::list_follow_ups).post(api::create_follow_up))
+        .route("/api/followups/{id}", put(api::update_follow_up).delete(api::delete_follow_up))
         .route("/api/graph", get(api::get_graph))
         .route("/api/graph/mermaid", get(api::get_graph_mermaid))
         .route("/api/graph/edges", post(api::add_edge))

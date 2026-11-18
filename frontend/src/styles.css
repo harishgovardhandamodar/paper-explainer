@@ -560,6 +560,47 @@ a:hover { text-decoration: underline; }
 .ai-preview { padding: 16px 20px; align-items: center; }
 .ai-preview-tldr { font-family: var(--font-serif); font-size: 16px; line-height: 1.5; margin-top: 6px; }
 
+/* ---------- Follow-up board ---------- */
+.fu-summary { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-elevated); padding: 14px 18px; margin-bottom: 16px; }
+.fu-sum-stat { display: flex; flex-direction: column; gap: 2px; min-width: 72px; }
+.fu-sum-stat b { font-family: var(--font-serif); font-size: 24px; line-height: 1; }
+.fu-sum-stat.done b { color: var(--green); }
+.fu-sum-stat span { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: var(--text-faint); }
+.fu-sum-progress { flex: 1; min-width: 160px; margin-left: auto; }
+.fu-sum-bar { height: 6px; background: var(--border); border-radius: 5px; overflow: hidden; margin-bottom: 5px; }
+.fu-sum-bar > div { height: 100%; background: var(--green); }
+.fu-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+.fu-main { min-width: 0; }
+.fu-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.fu-toolbar select { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 12px; }
+.fu-board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.fu-column { background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; min-height: 220px; }
+.fu-col-head { display: flex; align-items: center; gap: 8px; padding: 2px 4px 10px; font-size: 12.5px; }
+.fu-col-head .chip { margin-left: auto; }
+.fu-col-icon { font-size: 14px; color: var(--text-faint); }
+.fu-col-icon.in_progress { color: var(--amber); }
+.fu-col-icon.done { color: var(--green); }
+.fu-cards { display: grid; gap: 8px; }
+.fu-card { border: 1px solid var(--border); border-left: 3px solid var(--border-strong); border-radius: 9px; background: var(--bg-elevated); padding: 11px 12px; box-shadow: var(--shadow-sm); }
+.fu-card.high { border-left-color: var(--rose); }
+.fu-card.medium { border-left-color: var(--amber); }
+.fu-card.low { border-left-color: var(--sky); }
+.fu-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
+.fu-card-title { font-size: 13px; font-weight: 700; line-height: 1.4; color: var(--text); }
+.fu-card-notes { font-size: 11.5px; line-height: 1.55; color: var(--text-muted); margin: 6px 0; white-space: pre-wrap; }
+.fu-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; border-top: 1px solid var(--border); margin-top: 9px; padding-top: 8px; }
+.fu-card-foot .btn.sm { padding: 4px 7px; font-size: 11px; }
+.fu-col-empty { font-size: 11.5px; color: var(--text-faint); padding: 18px 6px; text-align: center; font-style: italic; }
+.fu-edit { display: grid; gap: 7px; }
+.fu-edit input, .fu-edit textarea { width: 100%; padding: 7px 9px; border: 1px solid var(--accent); border-radius: 7px; background: var(--bg); color: var(--text); font-family: inherit; font-size: 12px; outline: none; }
+.fu-side { position: sticky; top: 18px; }
+.fu-form .field textarea { min-height: 80px; }
+.fu-suggest { margin-top: 12px; }
+.fu-suggest .small { margin: 4px 0 10px; }
+.fu-suggest-item { display: grid; grid-template-columns: 42px 1fr 18px; gap: 7px; align-items: start; width: 100%; text-align: left; border: 1px solid var(--border); background: var(--bg); border-radius: 8px; padding: 8px 9px; margin-bottom: 6px; cursor: pointer; color: var(--text); font-size: 11.5px; line-height: 1.45; }
+.fu-suggest-item:hover { border-color: var(--accent); background: var(--accent-soft); }
+.fu-suggest-add { color: var(--accent); font-weight: 700; font-size: 14px; }
+
 /* ---------- Reproducibility ---------- */
 .rp-summary { display: flex; align-items: center; gap: 22px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-elevated); padding: 18px 22px; margin-bottom: 16px; }
 .rp-gauge { flex: 0 0 auto; text-align: center; min-width: 110px; }
@@ -873,6 +914,9 @@ a:hover { text-decoration: underline; }
 @media (max-width: 980px) {
   .mx-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .lim-grid { grid-template-columns: 1fr; }
+  .fu-layout { grid-template-columns: 1fr; }
+  .fu-side { position: static; }
+  .fu-board { grid-template-columns: 1fr; }
   .rp-checks { grid-template-columns: 1fr; }
   .rp-link { grid-template-columns: 1fr 18px; }
   .rp-link-host { grid-column: 1 / -1; }

@@ -19,13 +19,15 @@ pub struct Store {
     pub custom_edges: Vec<GraphEdge>,
     /// Personal notes and highlights, kept separate from extractor `notes`.
     pub annotations: Vec<Annotation>,
+    /// Questions and tasks attached to claims, with triage state.
+    pub follow_ups: Vec<FollowUp>,
 }
 
 impl Store {
     pub fn new() -> Self {
         Self {
             version: 1, papers: Vec::new(), graph: KnowledgeGraph::default(),
-            custom_edges: Vec::new(), annotations: Vec::new(),
+            custom_edges: Vec::new(), annotations: Vec::new(), follow_ups: Vec::new(),
         }
     }
 
@@ -569,6 +571,83 @@ pub struct UpdateAnnotation {
     pub body: Option<String>,
     pub tags: Option<Vec<String>>,
     pub color: Option<String>,
+}
+
+// ---------------------------------------------------------------------------
+// Follow-up board
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FollowUpStatus {
+    Open,
+    InProgress,
+    Done,
+}
+
+impl Default for FollowUpStatus {
+    fn default() -> Self { Self::Open }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FollowUpPriority {
+    High,
+    Medium,
+    Low,
+}
+
+impl Default for FollowUpPriority {
+    fn default() -> Self { Self::Medium }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct FollowUp {
+    pub id: String,
+    pub paper_id: String,
+    /// Claim, finding or section this task is attached to.
+    pub target: String,
+    pub title: String,
+    pub notes: String,
+    pub status: FollowUpStatus,
+    pub priority: FollowUpPriority,
+    pub tags: Vec<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl Default for FollowUp {
+    fn default() -> Self {
+        let now = Utc::now();
+        Self {
+            id: String::new(), paper_id: String::new(), target: String::new(), title: String::new(),
+            notes: String::new(), status: FollowUpStatus::Open, priority: FollowUpPriority::Medium,
+            tags: Vec::new(), created_at: now, updated_at: now,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct CreateFollowUp {
+    pub paper_id: String,
+    pub target: String,
+    pub title: String,
+    pub notes: String,
+    pub status: FollowUpStatus,
+    pub priority: FollowUpPriority,
+    pub tags: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct UpdateFollowUp {
+    pub title: Option<String>,
+    pub notes: Option<String>,
+    pub status: Option<FollowUpStatus>,
+    pub priority: Option<FollowUpPriority>,
+    pub tags: Option<Vec<String>>,
 }
 
 // ---------------------------------------------------------------------------

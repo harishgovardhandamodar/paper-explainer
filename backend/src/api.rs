@@ -311,6 +311,31 @@ pub async fn delete_annotation(
     Ok(StatusCode::NO_CONTENT)
 }
 
+pub async fn list_follow_ups(
+    State(state): State<ApiState>, Query(q): Query<AnnotationQuery>,
+) -> ApiResult<Json<Vec<FollowUp>>> {
+    Ok(Json(state.store.follow_ups(q.paper_id.as_deref())?))
+}
+
+pub async fn create_follow_up(
+    State(state): State<ApiState>, Json(req): Json<CreateFollowUp>,
+) -> ApiResult<Json<FollowUp>> {
+    Ok(Json(state.store.add_follow_up(req)?))
+}
+
+pub async fn update_follow_up(
+    State(state): State<ApiState>, Path(id): Path<String>, Json(req): Json<UpdateFollowUp>,
+) -> ApiResult<Json<FollowUp>> {
+    Ok(Json(state.store.update_follow_up(&id, req)?))
+}
+
+pub async fn delete_follow_up(
+    State(state): State<ApiState>, Path(id): Path<String>,
+) -> ApiResult<StatusCode> {
+    state.store.delete_follow_up(&id)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 pub async fn reset(State(state): State<ApiState>) -> ApiResult<StatusCode> {
     state.store.reset()?;
     Ok(StatusCode::NO_CONTENT)

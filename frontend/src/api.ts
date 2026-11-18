@@ -1,6 +1,7 @@
 import type {
-  Annotation, CategoryDef, CreateAnnotation, GraphEdge, Health, IngestRequest, KnowledgeGraph,
-  LibraryQuery, LibraryResponse, LlmStatus, Paper, PaperSummary, SearchResult, Stats,
+  Annotation, CategoryDef, CreateAnnotation, CreateFollowUp, FollowUp, GraphEdge, Health,
+  IngestRequest, KnowledgeGraph, LibraryQuery, LibraryResponse, LlmStatus, Paper, PaperSummary,
+  SearchResult, Stats,
 } from './types';
 
 const BASE = '/api';
@@ -55,6 +56,14 @@ export const api = {
     request<Annotation>(`/annotations/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteAnnotation: (id: string) =>
     request<void>(`/annotations/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  followUps: (paperId?: string) =>
+    request<FollowUp[]>(`/followups${paperId ? `?paper_id=${encodeURIComponent(paperId)}` : ''}`),
+  addFollowUp: (body: CreateFollowUp) =>
+    request<FollowUp>('/followups', { method: 'POST', body: JSON.stringify(body) }),
+  updateFollowUp: (id: string, body: Partial<Pick<FollowUp, 'title' | 'notes' | 'status' | 'priority' | 'tags'>>) =>
+    request<FollowUp>(`/followups/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteFollowUp: (id: string) =>
+    request<void>(`/followups/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   graph: () => request<KnowledgeGraph>('/graph'),
   addEdge: (edge: GraphEdge) =>
     request<GraphEdge>('/graph/edges', { method: 'POST', body: JSON.stringify(edge) }),

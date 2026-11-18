@@ -263,6 +263,76 @@ impl StoreHandle {
         self.flush()
     }
 
+    pub fn follow_ups(&self, paper_id: Option<&str>) -> AppResult<Vec<FollowUp>> {
+        let store = self.read()?;
+        Ok(store.follow_ups.iter()
+            .filter(|f| paper_id.map_or(true, |id| f.paper_id == id))
+            .cloned().collect())
+    }
+
+    pub fn add_follow_up(&self, req: CreateFollowUp) -> AppResult<FollowUp> {
+        if req.title.trim().is_empty() {
+            return Err(AppError::BadRequest("follow-up title cannot be empty".into()));
+        }
+        {
+            let store = self.read()?;
+            if store.find_paper(&req.paper_id).is_none() {
+                return Err(AppError::NotFound(format!("paper '{}'", req.paper_id)));
+            }
+        }
+        let now = Utc::now();
+        let id = make_id("fu", &format!("{}-{}-{}", req.paper_id, req.title, now.timestamp_millis()));
+        let item = FollowUp {
+            id,
+            paper_id: req.paper_id,
+            target: req.target,
+            title: req.title.trim().to_string(),
+            notes: req.notes.trim().to_string(),
+            status: req.status,
+            priority: req.priority,
+            tags: req.tags,
+            created_at: now,
+            updated_at: now,
+        };
+        { self.write()?.follow_ups.push(item.clone()); }
+        self.flush()?;
+        Ok(item)
+    }
+
+    pub fn update_follow_up(&self, id: &str, req: UpdateFollowUp) -> AppResult<FollowUp> {
+        let updated = {
+            let mut store = self.write()?;
+            let f = store.follow_ups.iter_mut().find(|f| f.id == id)
+                .ok_or_else(|| AppError::NotFound(format!("follow-up '{id}'")))?;
+            if let Some(title) = req.title {
+                if title.trim().is_empty() {
+                    return Err(AppError::BadRequest("follow-up title cannot be empty".into()));
+                }
+                f.title = title.trim().to_string();
+            }
+            if let Some(notes) = req.notes { f.notes = notes.trim().to_string(); }
+            if let Some(status) = req.status { f.status = status; }
+            if let Some(priority) = req.priority { f.priority = priority; }
+            if let Some(tags) = req.tags { f.tags = tags; }
+            f.updated_at = Utc::now();
+            f.clone()
+        };
+        self.flush()?;
+        Ok(updated)
+    }
+
+    pub fn delete_follow_up(&self, id: &str) -> AppResult<()> {
+        {
+            let mut store = self.write()?;
+            let before = store.follow_ups.len();
+            store.follow_ups.retain(|f| f.id != id);
+            if store.follow_ups.len() == before {
+                return Err(AppError::NotFound(format!("follow-up '{id}'")));
+            }
+        }
+        self.flush()
+    }
+
     pub fn reset(&self) -> AppResult<()> {
         {
             let mut store = self.write()?;
