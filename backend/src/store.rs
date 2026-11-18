@@ -48,6 +48,9 @@ impl StoreHandle {
         // Migration: papers saved before categorisation existed get categories
         // derived from their own text, then the change is persisted below.
         let _backfilled = categories::backfill(&mut store.papers);
+        // Likewise, older papers gain per-item provenance on first open so
+        // every badge is present without any user action.
+        let _provenance_backfilled = crate::provenance::backfill(&mut store.papers);
 
         let handle = Self { path, inner: Arc::new(RwLock::new(store)) };
         handle.rebuild_graph()?;
@@ -173,7 +176,22 @@ impl StoreHandle {
         self.read()?.find_paper(id).cloned().ok_or_else(|| AppError::NotFound(format!("paper '{id}'")))
     }
 
-    pub fn upsert_paper(&self, paper: Paper) -> AppResult<Paper> {
+    pub fn upsert_paper(&self, mut paper: Paper) -> AppResult<Paper> {
+        // A re-import replaces extracted fields, but human provenance edits
+        // (verification, badges, notes, confidence) must survive.
+        let carried = {
+            let guard = self.read()?;
+            guard.find_paper(&paper.id).map(|old|
+                old.item_provenance.iter()
+                    .filter(|(_, p)| p.overridden)
+                    .map(|(k, p)| (k.clone(), p.clone()))
+                    .collect::<Vec<_>>())
+                .unwrap_or_default()
+        };
+        for (key, prov) in carried {
+            paper.item_provenance.entry(key).or_insert(prov);
+        }
+        crate::provenance::backfill_paper(&mut paper);
         {
             let mut store = self.write()?;
             match store.papers.iter().position(|p| p.id == paper.id) {
@@ -683,6 +701,64 @@ impl StoreHandle {
         })
     }
 
+    // -- Provenance & confidence ---------------------------------------------
+
+    pub fn provenance_report(&self, paper_id: Option<&str>) -> AppResult<crate::provenance::ProvenanceReport> {
+        let store = self.read()?;
+        let papers: Vec<Paper> = store.papers.iter()
+            .filter(|p| paper_id.map_or(true, |id| p.id == id))
+            .cloned().collect();
+        Ok(crate::provenance::report(&papers))
+    }
+
+    pub fn update_provenance(
+        &self, paper_id: &str, key: &str, req: UpdateProvenance,
+    ) -> AppResult<Provenance> {
+        let updated = {
+            let mut store = self.write()?;
+            let paper = store.find_paper_mut(paper_id)
+                .ok_or_else(|| AppError::NotFound(format!("paper '{paper_id}'")))?;
+            let prov = paper.item_provenance.get_mut(key)
+                .ok_or_else(|| AppError::NotFound(format!("provenance for item '{key}'")))?;
+            if let Some(verified) = req.verified {
+                prov.verified_at = if verified { Some(Utc::now()) } else { None };
+                prov.kind = if verified { ProvenanceKind::Verified } else { prov.origin };
+            }
+            if let Some(kind) = req.kind { prov.kind = kind; }
+            if let Some(rule) = req.rule { prov.rule = rule; }
+            if let Some(confidence) = req.confidence { prov.confidence = confidence.clamp(0.0, 1.0); }
+            if let Some(section) = req.section {
+                if !section.trim().is_empty() { prov.section = Some(section); }
+            }
+            if let Some(note) = req.note { prov.note = note; }
+            prov.overridden = true;
+            prov.updated_at = Utc::now();
+            prov.clone()
+        };
+        self.flush()?;
+        Ok(updated)
+    }
+
+    pub fn backfill_provenance(&self) -> AppResult<usize> {
+        let added = {
+            let mut store = self.write()?;
+            crate::provenance::backfill(&mut store.papers)
+        };
+        if added > 0 { self.flush()?; }
+        Ok(added)
+    }
+
+    /// Refresh AI provenance after the enhancement handler changed a paper.
+    pub fn refresh_enhancement_provenance(&self, id: &str) -> AppResult<()> {
+        {
+            let mut store = self.write()?;
+            let paper = store.find_paper_mut(id)
+                .ok_or_else(|| AppError::NotFound(format!("paper '{id}'")))?;
+            crate::provenance::refresh_enhancement_provenance(paper);
+        }
+        self.flush()
+    }
+
     pub fn reset(&self) -> AppResult<()> {
         {
             let mut store = self.write()?;
@@ -953,6 +1029,34 @@ mod tests {
         let facets = build_facets(&guard.papers, &[]);
         assert!(facets.reading_statuses.iter().any(|f| f.value == "unread" && f.count == 1));
         assert!(facets.priorities.iter().any(|f| f.value == "medium" && f.count == 1));
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn provenance_overrides_clamp_confidence_and_survive_reimport() {
+        let (store, path) = temp_store();
+        let seed = seed_paper();
+        assert!(store.get_paper(&seed.id).unwrap().item_provenance.contains_key("summary"));
+
+        let saved = store.update_provenance(&seed.id, "summary", UpdateProvenance {
+            verified: Some(true), confidence: Some(5.0), note: Some("checked §1".into()),
+            ..Default::default()
+        }).unwrap();
+        assert_eq!(saved.kind, ProvenanceKind::Verified);
+        assert_eq!(saved.origin, ProvenanceKind::Curated);
+        assert_eq!(saved.confidence, 1.0);
+        assert!(saved.verified_at.is_some());
+
+        // Re-import replaces extracted content but the human edit remains.
+        let mut replacement = seed_paper();
+        replacement.title = "Re-imported title".into();
+        let updated = store.upsert_paper(replacement).unwrap();
+        let prov = &updated.item_provenance["summary"];
+        assert_eq!(prov.note, "checked §1");
+        assert_eq!(prov.kind, ProvenanceKind::Verified);
+
+        let report = store.provenance_report(Some(&seed.id)).unwrap();
+        assert!(report.items.iter().any(|i| i.key == "summary" && i.verified));
         let _ = fs::remove_file(path);
     }
 }

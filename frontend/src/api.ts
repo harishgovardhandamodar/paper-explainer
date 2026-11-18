@@ -3,8 +3,8 @@ import type {
   CreateProjectFollowUp, CreateSynthesis, FollowUp, GlossaryEntry, GraphEdge, Health,
   HypothesisTracker, IngestRequest, KnowledgeGraph, LibraryQuery, LibraryResponse,
   LlmStatus, OpenQuestion, Paper, PaperReference, PaperSummary, Project, ProjectFollowUp, ProjectReadout,
-  ReadingState, ResolveResponse, SearchResult, Stats, Synthesis, UpdateProject, UpdateProjectFollowUp,
-  UpdateReadingState, UpdateSynthesis,
+  Provenance, ProvenanceReport, ReadingState, ResolveResponse, SearchResult, Stats, Synthesis,
+  UpdateProject, UpdateProjectFollowUp, UpdateProvenance, UpdateReadingState, UpdateSynthesis,
 } from './types';
 
 const BASE = '/api';
@@ -98,6 +98,13 @@ export const api = {
   deleteProjectFollowUp: (id: string, taskId: string) =>
     request<void>(`/projects/${encodeURIComponent(id)}/followups/${encodeURIComponent(taskId)}`,
       { method: 'DELETE' }),
+  provenance: (paperId?: string) =>
+    request<ProvenanceReport>(`/provenance${paperId ? `?paper_id=${encodeURIComponent(paperId)}` : ''}`),
+  updateProvenance: (paperId: string, key: string, body: UpdateProvenance) =>
+    request<Provenance>(`/provenance/papers/${encodeURIComponent(paperId)}/items/${encodeURIComponent(key)}`,
+      { method: 'PUT', body: JSON.stringify(body) }),
+  backfillProvenance: () =>
+    request<{ added: number }>('/provenance/backfill', { method: 'POST' }),
   refreshPaper: (id: string) =>
     request<Paper>(`/papers/${encodeURIComponent(id)}/refresh`, { method: 'POST' }),
   llmStatus: () => request<LlmStatus>('/llm/status'),

@@ -155,6 +155,12 @@ pub struct ResolveQuery {
     pub value: String,
 }
 
+#[derive(Debug, Default, Deserialize)]
+pub struct ProvenanceQuery {
+    /// Restrict the report to one paper.
+    pub paper_id: Option<String>,
+}
+
 /// Identify an arXiv id / DOI before importing, so the UI can warn about a
 /// duplicate (including version differences) without changing any state.
 pub async fn resolve_identifier(
@@ -212,6 +218,7 @@ pub async fn enhance_paper(
             .ok_or_else(|| AppError::NotFound(format!("paper '{id}'")))?;
         p.enhancement = Some(enhancement);
         p.updated_at = Utc::now();
+        crate::provenance::refresh_enhancement_provenance(p);
         p.clone()
     };
     state.store.flush()?;
@@ -228,6 +235,7 @@ pub async fn clear_enhancement(
             .ok_or_else(|| AppError::NotFound(format!("paper '{id}'")))?;
         p.enhancement = None;
         p.updated_at = Utc::now();
+        crate::provenance::refresh_enhancement_provenance(p);
         p.clone()
     };
     state.store.flush()?;
@@ -563,6 +571,30 @@ pub async fn delete_project_follow_up(
 ) -> ApiResult<StatusCode> {
     state.store.delete_project_follow_up(&id, &task_id)?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+// -- Provenance & confidence -------------------------------------------------
+
+/// Every explained item in the collection with its badge, rule and confidence.
+pub async fn provenance(
+    State(state): State<ApiState>, Query(params): Query<ProvenanceQuery>,
+) -> ApiResult<Json<crate::provenance::ProvenanceReport>> {
+    Ok(Json(state.store.provenance_report(params.paper_id.as_deref())?))
+}
+
+/// Update one item's badge, rule, confidence, note or verification state.
+pub async fn update_provenance(
+    State(state): State<ApiState>,
+    Path((paper_id, key)): Path<(String, String)>,
+    Json(req): Json<UpdateProvenance>,
+) -> ApiResult<Json<Provenance>> {
+    Ok(Json(state.store.update_provenance(&paper_id, &key, req)?))
+}
+
+/// Re-derive missing provenance after a schema upgrade or bulk import.
+pub async fn backfill_provenance(State(state): State<ApiState>) -> ApiResult<Json<serde_json::Value>> {
+    let added = state.store.backfill_provenance()?;
+    Ok(Json(json!({ "added": added })))
 }
 
 pub async fn reset(State(state): State<ApiState>) -> ApiResult<StatusCode> {

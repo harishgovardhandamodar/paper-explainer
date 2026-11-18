@@ -101,6 +101,7 @@ const PLAIN_LABELS: Record<string, string> = {
   'Citation graph': 'Who builds on whom',
   Glossary: 'Plain-language terms',
   Projects: 'Reading projects',
+  Provenance: 'Where this came from',
   'Reading queue': 'What to read next',
   'Synthesis': 'Bring the papers together',
   'Conflicts across papers': 'Where the evidence disagrees',

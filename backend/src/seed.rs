@@ -52,6 +52,7 @@ pub fn seed_paper() -> Paper {
             "The authors explicitly do not claim universal security for O_ext — see the caveat on the key finding.".into(),
         ],
         enhancement: None,
+        item_provenance: std::collections::HashMap::new(),
     };
     let (categories, primary) = categorize(&paper);
     paper.categories = categories;

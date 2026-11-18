@@ -535,3 +535,64 @@ export interface ResolveResponse {
   already_in_library: boolean;
   existing_title: string | null;
 }
+
+// -- Provenance & confidence --------------------------------------------------
+
+/** Where an explained item came from, or a human's verification of it. */
+export type ProvenanceKind = 'curated' | 'heuristic' | 'ai' | 'manual' | 'verified';
+
+export interface Provenance {
+  kind: ProvenanceKind;
+  origin: ProvenanceKind;
+  rule: string;
+  /** Extraction strength in [0, 1], not a probability that a claim is true. */
+  confidence: number;
+  section: string | null;
+  generator: string;
+  verified_at: string | null;
+  note: string;
+  overridden: boolean;
+  updated_at: string;
+}
+
+export interface ProvenanceItemView {
+  key: string;
+  paper_id: string;
+  paper_title: string;
+  item_type: string;
+  label: string;
+  badge: ProvenanceKind;
+  origin: ProvenanceKind;
+  rule: string;
+  generator: string;
+  confidence: number;
+  section: string | null;
+  verified: boolean;
+  note: string;
+  overridden: boolean;
+}
+
+export interface ProvenanceStats {
+  items: number;
+  verified: number;
+  curated: number;
+  heuristic: number;
+  ai: number;
+  manual: number;
+  low_confidence: number;
+  average_confidence: number;
+}
+
+export interface ProvenanceReport {
+  items: ProvenanceItemView[];
+  stats: ProvenanceStats;
+}
+
+export interface UpdateProvenance {
+  kind?: ProvenanceKind;
+  rule?: string;
+  confidence?: number;
+  section?: string;
+  note?: string;
+  verified?: boolean;
+}

@@ -13,6 +13,7 @@ pub mod pdf;
 pub mod models;
 pub mod parse;
 pub mod projects;
+pub mod provenance;
 pub mod questions;
 pub mod seed;
 pub mod store;
@@ -61,6 +62,9 @@ pub fn build_router(state: api::ApiState, dist: &Path) -> Router {
         .route("/api/projects/{id}/export", get(api::project_readout))
         .route("/api/projects/{id}/followups", post(api::add_project_follow_up))
         .route("/api/projects/{id}/followups/{task_id}", put(api::update_project_follow_up).delete(api::delete_project_follow_up))
+        .route("/api/provenance", get(api::provenance))
+        .route("/api/provenance/backfill", post(api::backfill_provenance))
+        .route("/api/provenance/papers/{paper_id}/items/{key}", put(api::update_provenance))
         .route("/api/graph", get(api::get_graph))
         .route("/api/graph/mermaid", get(api::get_graph_mermaid))
         .route("/api/graph/edges", post(api::add_edge))

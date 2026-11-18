@@ -88,6 +88,101 @@ pub struct Paper {
     /// Optional AI-written explanation, generated on demand via Ollama.
     /// Stored alongside the deterministic extraction so it survives reloads.
     pub enhancement: Option<PaperEnhancement>,
+    /// Per-item origin, rule and confidence, keyed by item id. Special keys:
+    /// `summary` and `enhancement:<field>[:<index>]`.
+    #[serde(default)]
+    pub item_provenance: std::collections::HashMap<String, Provenance>,
+}
+
+// ---------------------------------------------------------------------------
+// Provenance & confidence
+// ---------------------------------------------------------------------------
+
+/// The badge shown for an explained item. `Verified` is applied by a human
+/// after checking the item against the paper; the original origin is kept in
+/// `Provenance::origin` so verification never erases where content came from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProvenanceKind {
+    Curated,
+    Heuristic,
+    Ai,
+    Manual,
+    Verified,
+}
+
+impl Default for ProvenanceKind {
+    fn default() -> Self { Self::Heuristic }
+}
+
+impl ProvenanceKind {
+    pub fn label(&self) -> &'static str {
+        match self {
+            Self::Curated => "curated",
+            Self::Heuristic => "heuristic",
+            Self::Ai => "AI",
+            Self::Manual => "manual",
+            Self::Verified => "verified",
+        }
+    }
+}
+
+/// Provenance for one explained item.
+///
+/// Confidence is the strength of the extraction signal, **not** a probability
+/// that the claim is true. A number-backed finding scores higher than a cue
+/// phrase because there is more to check, not because it is more correct.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Provenance {
+    /// Current badge (origin, or `Verified` after a human check).
+    pub kind: ProvenanceKind,
+    /// Source before any human verification or manual edit.
+    pub origin: ProvenanceKind,
+    /// Named deterministic rule or generator, e.g. `finding_numbers`.
+    pub rule: String,
+    /// Extraction strength in [0, 1]; not a truth probability.
+    pub confidence: f32,
+    /// Paper section the item was taken from, when the extractor knew it.
+    pub section: Option<String>,
+    /// Model name or other generator detail, for AI-sourced items.
+    pub generator: String,
+    pub verified_at: Option<DateTime<Utc>>,
+    /// Human note (corrections, caveats, why a badge was changed).
+    pub note: String,
+    /// True once a human changed a field; protects the entry from re-derivation
+    /// on refresh / re-import.
+    pub overridden: bool,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl Default for Provenance {
+    fn default() -> Self {
+        Self {
+            kind: ProvenanceKind::Heuristic,
+            origin: ProvenanceKind::Heuristic,
+            rule: String::new(),
+            confidence: 0.5,
+            section: None,
+            generator: String::new(),
+            verified_at: None,
+            note: String::new(),
+            overridden: false,
+            updated_at: Utc::now(),
+        }
+    }
+}
+
+/// Human edits to one provenance entry. `None` means "leave unchanged".
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct UpdateProvenance {
+    pub kind: Option<ProvenanceKind>,
+    pub rule: Option<String>,
+    pub confidence: Option<f32>,
+    pub section: Option<String>,
+    pub note: Option<String>,
+    pub verified: Option<bool>,
 }
 
 /// AI-generated explanation layer for a paper. Produced by the configured
@@ -140,7 +235,7 @@ impl Default for Paper {
             added_at: now, updated_at: now, hypotheses: Vec::new(), experiments: Vec::new(),
             findings: Vec::new(), diagrams: Vec::new(), workflows: Vec::new(),
             concepts: Vec::new(), sections: Vec::new(), references: Vec::new(), notes: Vec::new(),
-            enhancement: None,
+            enhancement: None, item_provenance: std::collections::HashMap::new(),
         }
     }
 }
