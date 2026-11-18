@@ -32,7 +32,7 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 
 ## Knowledge base & scale
 
-- [ ] **17. PDF / DOI ingest with version dedupe** (M–L) — PDF upload, DOI/arXiv lookup, recognize versioned IDs as one paper.
+- [x] **17. PDF / DOI ingest with version dedupe** (M–L) — PDF upload, DOI/arXiv lookup, recognize versioned IDs as one paper.
 - [ ] **18. Citation graph** (L) — Parse references, add cites/cited_by edges distinct from concept bridges; optional Crossref enrichment.
 - [ ] **19. Glossary & concept explorer** (S–M) — Plain-language definitions, aliases, prerequisites, "where used"; student-friendly.
 - [ ] **20. Projects / literature-review workspaces** (M) — Named groups of papers with their own notes, follow-ups and exported readout.
@@ -68,3 +68,4 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 | 14 | Hypothesis tracker | `5a39b8a` | New `tracker` module + `GET /api/hypothesis-tracker`; token-overlap clustering across papers into supported/contested/rejected/open themes with status-minibars, cross-paper tension, finding-level counter-evidence and a flat chronological timeline; global view with paper deep-links |
 | 15 | Synthesis builder | `d3e1447` | New persisted `Synthesis` model + store CRUD/refresh and 6 endpoints; deterministic `synthesis` generator produces related-work narrative, 11-row comparison matrix and shared-theme Mermaid diagram; builder UI with paper picker, preview, editable notes, saved list, regenerate and Markdown export |
 | 16 | Reading progress & triage | `454e241` | New persisted `ReadingState` (status/priority/why/last view/anchor), 3 endpoints and library `reading_status`/`priority` filters + facets; global triage inbox with stats, filters, inline editing and resume-from-view; App records last view on paper navigation (auto-tracks first view as in-progress) |
+| 17 | PDF / DOI ingest + dedupe | `845db0b` | New `identifiers` module canonicalises arXiv ids (incl. old-style + DOIs) to version-free ids; `pdf` module extracts text via streamed `pdftotext` (poppler-utils added to image); ingest accepts `doi`/`pdf`/`pdf_filename`, preserves `added_at` on re-import, sets `arxiv_id`/`version` and new `pdf` source; `GET /api/resolve` preview; 4-mode dialog with duplicate warning |
