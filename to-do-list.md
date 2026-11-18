@@ -20,7 +20,7 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 - [x] **8. Personal annotations & highlights** (M) — User notes anchored to entities/text ranges, tagged, timestamped, exported; distinct from extractor `notes`.
 - [x] **9. Claim–evidence matrix** (S–M) — Sortable hypotheses × experiments × findings grid with status/confidence and unsupported-claim highlighting.
 - [x] **10. "What this paper does NOT show" view** (S) — Author caveats vs methodological limits vs my critique; prevents overclaiming for nontechnical readers.
-- [ ] **11. Reproducibility checklist** (S) — Turn `ExperimentSetup` into a scored card; flag missing code, seed, hyperparameters, compute; link artifacts.
+- [x] **11. Reproducibility checklist** (S) — Turn `ExperimentSetup` into a scored card; flag missing code, seed, hyperparameters, compute; link artifacts.
 
 ## Follow up & act
 
@@ -62,3 +62,4 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 | 8 | Personal annotations | `3f1cc5b` | New persisted `Annotation` model, CRUD API and workspace with entity/quote/section anchors, tags, colors, timestamps, JSON/Markdown export |
 | 9 | Claim–evidence matrix | `14082f1` | Sortable hypotheses × experiments grid with linked findings in cells, status/confidence sorting, gaps-only filter and unsupported-claim highlighting |
 | 10 | What it does NOT show | `1c04035` | Three-column view separating stated author caveats, deterministic setup flags (baseline/dataset/budget/reproducibility/evidence links) and personal critique persisted as annotations |
+| 11 | Reproducibility checklist | `10f34cb` | Ten-check scored card per experiment (dataset, baseline, metrics, conditions, compute, seed, hyperparameters, code, steps, linked results), overall signal bar and detected artifact links |
