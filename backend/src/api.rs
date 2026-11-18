@@ -46,6 +46,24 @@ pub async fn categories() -> Json<Vec<CategoryDef>> {
     Json(crate::categories::category_defs())
 }
 
+// -- Reading progress & triage ----------------------------------------------
+
+pub async fn list_reading_states(State(state): State<ApiState>) -> ApiResult<Json<Vec<ReadingState>>> {
+    Ok(Json(state.store.reading_states()?))
+}
+
+pub async fn get_reading_state(
+    State(state): State<ApiState>, Path(paper_id): Path<String>,
+) -> ApiResult<Json<ReadingState>> {
+    Ok(Json(state.store.get_reading_state(&paper_id)?))
+}
+
+pub async fn put_reading_state(
+    State(state): State<ApiState>, Path(paper_id): Path<String>, Json(req): Json<UpdateReadingState>,
+) -> ApiResult<Json<ReadingState>> {
+    Ok(Json(state.store.upsert_reading_state(&paper_id, req)?))
+}
+
 pub async fn get_paper(
     State(state): State<ApiState>, Path(id): Path<String>,
 ) -> ApiResult<Json<Paper>> {

@@ -8,10 +8,10 @@ import { ForceGraph, NODE_COLORS, NODE_LABELS } from './components/KnowledgeGrap
 import { Badge, Chips, Empty, PageHead, SectionDivider, StatCard, relativeDate } from './components/ui';
 import type {
   CategoryDef, EdgeKind, FacetCount, GraphEdge, GraphNode, KnowledgeGraph, LibraryResponse,
-  NodeKind, Paper, PaperSummary, Stats,
+  NodeKind, Paper, PaperSummary, ReadingState, Stats,
 } from './types';
 
-export type ViewKey = 'overview' | 'read' | 'source' | 'annotations' | 'matrix' | 'limits' | 'repro' | 'followups' | 'openquestions' | 'tracker' | 'synthesis' | 'hypotheses' | 'experiments' | 'diagrams' | 'workflows' | 'findings' | 'graph' | 'library' | 'design' | 'ai' | 'present' | 'compare' | 'export';
+export type ViewKey = 'overview' | 'read' | 'source' | 'annotations' | 'matrix' | 'limits' | 'repro' | 'followups' | 'openquestions' | 'tracker' | 'synthesis' | 'triage' | 'hypotheses' | 'experiments' | 'diagrams' | 'workflows' | 'findings' | 'graph' | 'library' | 'design' | 'ai' | 'present' | 'compare' | 'export';
 
 /* -------------------------------- Overview -------------------------------- */
 export function OverviewView({ paper, stats, onNavigate }: {
@@ -571,13 +571,15 @@ function FacetGroup({ title, items, active, onPick, labelFor }: {
   );
 }
 
-function LibraryPaperCard({ p, categoryLabel, categoryTone, onOpen, onDelete }: {
+function LibraryPaperCard({ p, reading, categoryLabel, categoryTone, onOpen, onDelete }: {
   p: PaperSummary;
+  reading?: ReadingState;
   categoryLabel: (id: string) => string;
   categoryTone: (id: string) => string;
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
+  const readingTone = reading?.status === 'done' ? 'supported' : reading?.status === 'in_progress' ? 'open' : '';
   return (
     <div className="card paper-card">
       <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
@@ -587,6 +589,11 @@ function LibraryPaperCard({ p, categoryLabel, categoryTone, onOpen, onDelete }: 
         ))}
         <Badge tone={p.source}>{p.source.replace('_', ' ')}</Badge>
         <Badge tone={p.status}>{p.status}</Badge>
+        {reading && reading.status !== 'unread' && (
+          <Badge tone={readingTone}>{reading.status === 'in_progress' ? 'in progress' : 'read'}</Badge>
+        )}
+        {reading?.priority === 'high' && <Badge tone="rejected">high priority</Badge>}
+        {reading?.why && <span className="chip" title={reading.why}>📌 why</span>}
         <span className="tiny faint mono" style={{ marginLeft: 'auto' }}>{relativeDate(p.added_at)}</span>
       </div>
       <h3>{p.title}</h3>
@@ -620,6 +627,8 @@ export function LibraryView({ papers, stats, onOpen, onDelete, onAdd }: {
   const [tag, setTag] = useState('');
   const [source, setSource] = useState('');
   const [status, setStatus] = useState('');
+  const [readingStatus, setReadingStatus] = useState('');
+  const [priority, setPriority] = useState('');
   const [yearFrom, setYearFrom] = useState('');
   const [yearTo, setYearTo] = useState('');
   const [sort, setSort] = useState('recent');
@@ -641,6 +650,7 @@ export function LibraryView({ papers, stats, onOpen, onDelete, onAdd }: {
       try {
         const resp = await api.library({
           q, category, tag, source, status,
+          reading_status: readingStatus, priority,
           year_from: yearFrom ? Number(yearFrom) : undefined,
           year_to: yearTo ? Number(yearTo) : undefined,
           sort,
@@ -655,19 +665,23 @@ export function LibraryView({ papers, stats, onOpen, onDelete, onAdd }: {
       }
     }, 180);
     return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [q, category, tag, source, status, yearFrom, yearTo, sort, groupBy, offset, refreshToken]);
+  }, [q, category, tag, source, status, readingStatus, priority, yearFrom, yearTo, sort, groupBy, offset, refreshToken]);
 
   // Any filter change returns to the first page.
-  useEffect(() => { setOffset(0); }, [q, category, tag, source, status, yearFrom, yearTo, sort]);
+  useEffect(() => { setOffset(0); }, [q, category, tag, source, status, readingStatus, priority, yearFrom, yearTo, sort]);
 
   const categories: CategoryDef[] = data?.categories ?? [];
   const catMap = new Map(categories.map((c) => [c.id, c]));
   const categoryLabel = (id: string) => catMap.get(id)?.label ?? id;
   const categoryTone = (id: string) => catMap.get(id)?.tone ?? '';
-  const facets = data?.facets ?? { categories: [], tags: [], sources: [], statuses: [], years: [] };
+  const facets = data?.facets ?? {
+    categories: [], tags: [], sources: [], statuses: [], years: [],
+    reading_statuses: [], priorities: [],
+  };
 
   const clearAll = () => {
-    setQ(''); setCategory(''); setTag(''); setSource(''); setStatus(''); setYearFrom(''); setYearTo('');
+    setQ(''); setCategory(''); setTag(''); setSource(''); setStatus('');
+    setReadingStatus(''); setPriority(''); setYearFrom(''); setYearTo('');
   };
   const activeFilters: { label: string; clear: () => void }[] = [];
   if (q) activeFilters.push({ label: `“${q}”`, clear: () => setQ('') });
@@ -675,12 +689,21 @@ export function LibraryView({ papers, stats, onOpen, onDelete, onAdd }: {
   if (tag) activeFilters.push({ label: `#${tag}`, clear: () => setTag('') });
   if (source) activeFilters.push({ label: source.replace('_', ' '), clear: () => setSource('') });
   if (status) activeFilters.push({ label: status, clear: () => setStatus('') });
+  if (readingStatus) activeFilters.push({
+    label: `Reading: ${facets.reading_statuses.find((f) => f.value === readingStatus)?.label ?? readingStatus}`,
+    clear: () => setReadingStatus(''),
+  });
+  if (priority) activeFilters.push({
+    label: `Priority: ${facets.priorities.find((f) => f.value === priority)?.label ?? priority}`,
+    clear: () => setPriority(''),
+  });
   if (yearFrom || yearTo) activeFilters.push({
     label: `${yearFrom || '…'}–${yearTo || '…'}`,
     clear: () => { setYearFrom(''); setYearTo(''); },
   });
 
   const shown = data?.papers ?? [];
+  const readingByPaper = new Map((data?.reading ?? []).map((r) => [r.paper_id, r]));
   const total = data?.total ?? 0;
   const collectionTotal = data?.collection_total ?? stats.papers;
   const pages = Math.max(1, Math.ceil(total / LIBRARY_PAGE_SIZE));
@@ -736,6 +759,14 @@ export function LibraryView({ papers, stats, onOpen, onDelete, onAdd }: {
           <option value="">All statuses</option>
           {facets.statuses.map((s) => <option key={s.value} value={s.value}>{s.label} ({s.count})</option>)}
         </select>
+        <select className="filter-select" value={readingStatus} onChange={(e) => setReadingStatus(e.target.value)} title="Reading progress">
+          <option value="">All reading states</option>
+          {facets.reading_statuses.map((s) => <option key={s.value} value={s.value}>{s.label} ({s.count})</option>)}
+        </select>
+        <select className="filter-select narrow" value={priority} onChange={(e) => setPriority(e.target.value)} title="Reading priority">
+          <option value="">All priorities</option>
+          {facets.priorities.map((s) => <option key={s.value} value={s.value}>{s.label} ({s.count})</option>)}
+        </select>
         <select className="filter-select narrow" value={yearFrom} onChange={(e) => setYearFrom(e.target.value)} title="Year from">
           <option value="">Year from</option>
           {facets.years.map((y) => <option key={y.value} value={y.value}>{y.label}</option>)}
@@ -784,6 +815,11 @@ export function LibraryView({ papers, stats, onOpen, onDelete, onAdd }: {
             onPick={(v) => setSource((cur) => (cur === v ? '' : v))} />
           <FacetGroup title="Status" active={status} items={facets.statuses}
             onPick={(v) => setStatus((cur) => (cur === v ? '' : v))} />
+          <div className="facet-subhead">Reading triage</div>
+          <FacetGroup title="Reading progress" active={readingStatus} items={facets.reading_statuses}
+            onPick={(v) => setReadingStatus((cur) => (cur === v ? '' : v))} />
+          <FacetGroup title="Priority" active={priority} items={facets.priorities}
+            onPick={(v) => setPriority((cur) => (cur === v ? '' : v))} />
           <FacetGroup title="Year" active={yearFrom} items={facets.years}
             onPick={(v) => { setYearFrom((cur) => (cur === v ? '' : v)); setYearTo((cur) => (cur === v ? '' : v)); }} />
         </aside>
@@ -805,8 +841,8 @@ export function LibraryView({ papers, stats, onOpen, onDelete, onAdd }: {
                   </div>
                   <div className="grid-2">
                     {items.map((p) => (
-                      <LibraryPaperCard key={p.id} p={p} categoryLabel={categoryLabel}
-                        categoryTone={categoryTone} onOpen={onOpen} onDelete={onDelete} />
+                      <LibraryPaperCard key={p.id} p={p} reading={readingByPaper.get(p.id)}
+                        categoryLabel={categoryLabel} categoryTone={categoryTone} onOpen={onOpen} onDelete={onDelete} />
                     ))}
                   </div>
                 </section>
@@ -816,8 +852,8 @@ export function LibraryView({ papers, stats, onOpen, onDelete, onAdd }: {
             <>
               <div className="grid-2">
                 {shown.map((p) => (
-                  <LibraryPaperCard key={p.id} p={p} categoryLabel={categoryLabel}
-                    categoryTone={categoryTone} onOpen={onOpen} onDelete={onDelete} />
+                  <LibraryPaperCard key={p.id} p={p} reading={readingByPaper.get(p.id)}
+                    categoryLabel={categoryLabel} categoryTone={categoryTone} onOpen={onOpen} onDelete={onDelete} />
                 ))}
                 <button className="card paper-card" onClick={onAdd}
                   style={{ borderStyle: 'dashed', cursor: 'pointer', alignItems: 'center', justifyContent: 'center', minHeight: 220 }}>

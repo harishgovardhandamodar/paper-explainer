@@ -73,6 +73,7 @@ impl StoreHandle {
     /// Filter, sort and paginate the library, returning facet counts computed
     /// over the whole collection so they stay stable while filters are active.
     pub fn query_library(&self, params: &LibraryQuery) -> AppResult<LibraryResponse> {
+        use std::collections::HashMap;
         let store = self.read()?;
         let needle = params.q.trim().to_lowercase();
         let tokens: Vec<&str> = needle.split_whitespace().collect();
@@ -80,6 +81,13 @@ impl StoreHandle {
         let tag = params.tag.trim().to_lowercase();
         let source = params.source.trim().to_lowercase();
         let status = params.status.trim().to_lowercase();
+        let reading_status = params.reading_status.trim().to_lowercase();
+        let priority = params.priority.trim().to_lowercase();
+        let reading_by_id: HashMap<&str, &ReadingState> = store.reading_states.iter()
+            .map(|r| (r.paper_id.as_str(), r)).collect();
+        let state_for = |id: &str| -> ReadingState {
+            reading_by_id.get(id).map(|r| (*r).clone()).unwrap_or_else(|| ReadingState::for_paper(id))
+        };
 
         let mut matched: Vec<&Paper> = store.papers.iter().filter(|p| {
             if !needle.is_empty() && !p.all_text().to_lowercase().contains(&needle) {
@@ -96,6 +104,24 @@ impl StoreHandle {
             }
             if !status.is_empty() && status_name(&p.status) != status {
                 return false;
+            }
+            if !reading_status.is_empty() {
+                let s = state_for(&p.id);
+                let name = match s.status {
+                    ReadingStatus::Unread => "unread",
+                    ReadingStatus::InProgress => "in_progress",
+                    ReadingStatus::Done => "done",
+                };
+                if name != reading_status { return false; }
+            }
+            if !priority.is_empty() {
+                let s = state_for(&p.id);
+                let name = match s.priority {
+                    ReadingPriority::High => "high",
+                    ReadingPriority::Medium => "medium",
+                    ReadingPriority::Low => "low",
+                };
+                if name != priority { return false; }
             }
             if let Some(from) = params.year_from {
                 if p.year.map_or(true, |y| y < from) { return false; }
@@ -127,8 +153,9 @@ impl StoreHandle {
         let total = matched.len();
         let limit = params.limit.clamp(1, 200);
         let offset = params.offset.min(total);
-        let papers: Vec<PaperSummary> = matched.into_iter()
-            .skip(offset).take(limit).map(|p| p.to_summary()).collect();
+        let page: Vec<&Paper> = matched.into_iter().skip(offset).take(limit).collect();
+        let reading: Vec<ReadingState> = page.iter().map(|p| state_for(&p.id)).collect();
+        let papers: Vec<PaperSummary> = page.into_iter().map(|p| p.to_summary()).collect();
 
         Ok(LibraryResponse {
             papers,
@@ -136,8 +163,9 @@ impl StoreHandle {
             collection_total: store.papers.len(),
             limit,
             offset,
-            facets: build_facets(&store.papers),
+            facets: build_facets(&store.papers, &store.reading_states),
             categories: categories::category_defs(),
+            reading,
         })
     }
 
@@ -333,6 +361,64 @@ impl StoreHandle {
         self.flush()
     }
 
+    // -- Reading progress & triage -------------------------------------------
+
+    /// All tracked reading states, most recently touched first.
+    pub fn reading_states(&self) -> AppResult<Vec<ReadingState>> {
+        let store = self.read()?;
+        let mut list = store.reading_states.clone();
+        list.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+        Ok(list)
+    }
+
+    /// Return the tracked state for a paper, or an untracked default. Missing
+    /// papers are an error so the UI cannot silently track a deleted paper.
+    pub fn get_reading_state(&self, paper_id: &str) -> AppResult<ReadingState> {
+        let store = self.read()?;
+        if store.find_paper(paper_id).is_none() {
+            return Err(AppError::NotFound(format!("paper '{paper_id}'")));
+        }
+        Ok(store.reading_states.iter().find(|r| r.paper_id == paper_id).cloned()
+            .unwrap_or_else(|| ReadingState::for_paper(paper_id)))
+    }
+
+    /// Create or update the reading state for a paper. A first write that only
+    /// records a view (no explicit status) defaults the paper to `in_progress`,
+    /// so simply opening a paper makes it show up in the triage inbox.
+    pub fn upsert_reading_state(&self, paper_id: &str, req: UpdateReadingState) -> AppResult<ReadingState> {
+        let updated = {
+            let mut store = self.write()?;
+            if store.find_paper(paper_id).is_none() {
+                return Err(AppError::NotFound(format!("paper '{paper_id}'")));
+            }
+            let pos = store.reading_states.iter().position(|r| r.paper_id == paper_id);
+            let existing = pos.map(|i| store.reading_states[i].clone());
+            let mut state = existing.clone().unwrap_or_else(|| ReadingState::for_paper(paper_id));
+            let has_last_view = req.last_view.is_some();
+            let has_status = req.status.is_some();
+
+            if let Some(status) = req.status { state.status = status; }
+            if let Some(priority) = req.priority { state.priority = priority; }
+            if let Some(why) = req.why { state.why = why; }
+            if let Some(view) = req.last_view { state.last_view = view; }
+            if let Some(anchor) = req.last_anchor { state.last_anchor = anchor; }
+
+            // Auto-track on first view: opening a paper shouldn't require an
+            // explicit triage action to move it out of the unread bucket.
+            let first_view_write = existing.is_none() && has_last_view && !has_status;
+            if first_view_write { state.status = ReadingStatus::InProgress; }
+
+            state.updated_at = Utc::now();
+            match pos {
+                Some(i) => store.reading_states[i] = state.clone(),
+                None => store.reading_states.push(state.clone()),
+            }
+            state
+        };
+        self.flush()?;
+        Ok(updated)
+    }
+
     // -- Cross-paper syntheses ------------------------------------------------
 
     pub fn syntheses(&self) -> AppResult<Vec<Synthesis>> {
@@ -468,7 +554,7 @@ fn status_name(status: &PaperStatus) -> &'static str {
     }
 }
 
-fn build_facets(papers: &[Paper]) -> LibraryFacets {
+fn build_facets(papers: &[Paper], reading: &[ReadingState]) -> LibraryFacets {
     use std::collections::HashMap;
 
     let defs = categories::category_defs();
@@ -480,6 +566,10 @@ fn build_facets(papers: &[Paper]) -> LibraryFacets {
     let mut source_counts: HashMap<String, usize> = HashMap::new();
     let mut status_counts: HashMap<String, usize> = HashMap::new();
     let mut year_counts: HashMap<String, usize> = HashMap::new();
+    let mut reading_counts: HashMap<String, usize> = HashMap::new();
+    let mut priority_counts: HashMap<String, usize> = HashMap::new();
+    let reading_by_id: HashMap<&str, &ReadingState> = reading.iter()
+        .map(|r| (r.paper_id.as_str(), r)).collect();
 
     for p in papers {
         for c in &p.categories {
@@ -493,6 +583,20 @@ fn build_facets(papers: &[Paper]) -> LibraryFacets {
         if let Some(y) = p.year {
             *year_counts.entry(y.to_string()).or_insert(0) += 1;
         }
+
+        let state = reading_by_id.get(p.id.as_str());
+        let rstatus = match state.map(|s| s.status) {
+            Some(ReadingStatus::InProgress) => "in_progress",
+            Some(ReadingStatus::Done) => "done",
+            _ => "unread",
+        };
+        let rpriority = match state.map(|s| s.priority) {
+            Some(ReadingPriority::High) => "high",
+            Some(ReadingPriority::Low) => "low",
+            _ => "medium",
+        };
+        *reading_counts.entry(rstatus.into()).or_insert(0) += 1;
+        *priority_counts.entry(rpriority.into()).or_insert(0) += 1;
     }
 
     // Categories follow the taxonomy order (with its friendly labels).
@@ -530,12 +634,28 @@ fn build_facets(papers: &[Paper]) -> LibraryFacets {
     let mut years = count_vec(year_counts, false);
     years.truncate(30);
 
+    // Reading facets have a stable, human-meaningful order rather than a
+    // frequency sort: Unread → In progress → Done, and High → Medium → Low.
+    let fixed_order = |counts: &HashMap<String, usize>, order: &[&str]| -> Vec<FacetCount> {
+        let labels: HashMap<&str, &str> = [
+            ("unread", "Unread"), ("in_progress", "In progress"), ("done", "Done"),
+            ("high", "High"), ("medium", "Medium"), ("low", "Low"),
+        ].into_iter().collect();
+        order.iter().filter_map(|key| counts.get(*key).map(|count| FacetCount {
+            value: (*key).to_string(),
+            label: labels.get(key).unwrap_or(key).to_string(),
+            count: *count,
+        })).collect()
+    };
+
     LibraryFacets {
         categories: category_facets,
         tags,
         sources: count_vec(source_counts, true),
         statuses: count_vec(status_counts, true),
         years,
+        reading_statuses: fixed_order(&reading_counts, &["unread", "in_progress", "done"]),
+        priorities: fixed_order(&priority_counts, &["high", "medium", "low"]),
     }
 }
 
@@ -560,4 +680,104 @@ pub fn ensure_seed(store: &StoreHandle) -> AppResult<()> {
         store.upsert_paper(seed_paper())?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    static COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+    fn temp_store() -> (StoreHandle, std::path::PathBuf) {
+        let n = COUNTER.fetch_add(1, Ordering::SeqCst);
+        let path = std::env::temp_dir().join(format!(
+            "paper-explainer-reading-{}-{}.json", std::process::id(), n,
+        ));
+        let _ = fs::remove_file(&path);
+        (StoreHandle::open_at(path.clone()).unwrap(), path)
+    }
+
+    #[test]
+    fn reading_state_defaults_to_unread_for_known_paper() {
+        let (store, path) = temp_store();
+        let seed = seed_paper();
+        let state = store.get_reading_state(&seed.id).unwrap();
+        assert_eq!(state.status, ReadingStatus::Unread);
+        assert_eq!(state.priority, ReadingPriority::Medium);
+        assert!(state.why.is_empty());
+        assert!(store.get_reading_state("does-not-exist").is_err());
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn first_view_write_auto_tracks_as_in_progress() {
+        let (store, path) = temp_store();
+        let seed = seed_paper();
+        let state = store.upsert_reading_state(&seed.id, UpdateReadingState {
+            last_view: Some("overview".into()), ..Default::default()
+        }).unwrap();
+        assert_eq!(state.status, ReadingStatus::InProgress);
+        assert_eq!(state.last_view, "overview");
+        // A second view write should not change an explicitly set status.
+        let state = store.upsert_reading_state(&seed.id, UpdateReadingState {
+            status: Some(ReadingStatus::Done), ..Default::default()
+        }).unwrap();
+        assert_eq!(state.status, ReadingStatus::Done);
+        let state = store.upsert_reading_state(&seed.id, UpdateReadingState {
+            last_view: Some("read".into()), ..Default::default()
+        }).unwrap();
+        assert_eq!(state.status, ReadingStatus::Done);
+        assert_eq!(state.last_view, "read");
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn library_filters_and_facets_reflect_reading_state() {
+        let (store, path) = temp_store();
+        let seed = seed_paper();
+        store.upsert_reading_state(&seed.id, UpdateReadingState {
+            status: Some(ReadingStatus::Done),
+            priority: Some(ReadingPriority::High),
+            why: Some("Need the O_ext caveat".into()),
+            ..Default::default()
+        }).unwrap();
+
+        let all = store.query_library(&LibraryQuery::default()).unwrap();
+        assert_eq!(all.total, 1);
+        assert_eq!(all.papers.len(), 1);
+        assert_eq!(all.reading.len(), 1);
+        assert_eq!(all.reading[0].status, ReadingStatus::Done);
+        assert_eq!(all.reading[0].why, "Need the O_ext caveat");
+        assert!(all.facets.reading_statuses.iter().any(|f| f.value == "done" && f.count == 1));
+        assert!(all.facets.priorities.iter().any(|f| f.value == "high" && f.count == 1));
+
+        let done = store.query_library(&LibraryQuery {
+            reading_status: "done".into(), ..Default::default()
+        }).unwrap();
+        assert_eq!(done.total, 1);
+        let unread = store.query_library(&LibraryQuery {
+            reading_status: "unread".into(), ..Default::default()
+        }).unwrap();
+        assert_eq!(unread.total, 0);
+        let high = store.query_library(&LibraryQuery {
+            priority: "high".into(), ..Default::default()
+        }).unwrap();
+        assert_eq!(high.total, 1);
+        let low = store.query_library(&LibraryQuery {
+            priority: "low".into(), ..Default::default()
+        }).unwrap();
+        assert_eq!(low.total, 0);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn reading_facets_count_untracked_papers_as_unread_medium() {
+        let (store, path) = temp_store();
+        let guard = store.read().unwrap();
+        let facets = build_facets(&guard.papers, &[]);
+        assert!(facets.reading_statuses.iter().any(|f| f.value == "unread" && f.count == 1));
+        assert!(facets.priorities.iter().any(|f| f.value == "medium" && f.count == 1));
+        let _ = fs::remove_file(path);
+    }
 }

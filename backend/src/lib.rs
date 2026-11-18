@@ -33,6 +33,8 @@ pub fn build_router(state: api::ApiState, dist: &Path) -> Router {
         .route("/api/papers/{id}/export", get(api::export_markdown))
         .route("/api/papers/{id}/export/{format}", get(api::export_format))
         .route("/api/papers/{id}/open-questions", get(api::open_questions))
+        .route("/api/reading-states", get(api::list_reading_states))
+        .route("/api/reading-states/{paper_id}", get(api::get_reading_state).put(api::put_reading_state))
         .route("/api/annotations", get(api::list_annotations).post(api::create_annotation))
         .route("/api/annotations/{id}", put(api::update_annotation).delete(api::delete_annotation))
         .route("/api/followups", get(api::list_follow_ups).post(api::create_follow_up))

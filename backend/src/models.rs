@@ -23,6 +23,8 @@ pub struct Store {
     pub follow_ups: Vec<FollowUp>,
     /// Stored cross-paper syntheses (related work, comparison, diagram).
     pub syntheses: Vec<Synthesis>,
+    /// Per-paper reading triage, keyed by `paper_id` in practice.
+    pub reading_states: Vec<ReadingState>,
 }
 
 impl Store {
@@ -30,7 +32,7 @@ impl Store {
         Self {
             version: 1, papers: Vec::new(), graph: KnowledgeGraph::default(),
             custom_edges: Vec::new(), annotations: Vec::new(), follow_ups: Vec::new(),
-            syntheses: Vec::new(),
+            syntheses: Vec::new(), reading_states: Vec::new(),
         }
     }
 
@@ -750,6 +752,76 @@ impl Default for OpenQuestion {
 }
 
 // ---------------------------------------------------------------------------
+// Reading progress & triage
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReadingStatus {
+    Unread,
+    InProgress,
+    Done,
+}
+
+impl Default for ReadingStatus {
+    fn default() -> Self { Self::Unread }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReadingPriority {
+    High,
+    Medium,
+    Low,
+}
+
+impl Default for ReadingPriority {
+    fn default() -> Self { Self::Medium }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ReadingState {
+    pub paper_id: String,
+    pub status: ReadingStatus,
+    pub priority: ReadingPriority,
+    /// Why this paper is worth reading — the triage question.
+    pub why: String,
+    /// Last dashboard view visited while reading this paper.
+    pub last_view: String,
+    /// Last entity anchor / position within that view.
+    pub last_anchor: String,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl Default for ReadingState {
+    fn default() -> Self {
+        Self {
+            paper_id: String::new(), status: ReadingStatus::Unread,
+            priority: ReadingPriority::Medium, why: String::new(),
+            last_view: String::new(), last_anchor: String::new(),
+            updated_at: Utc::now(),
+        }
+    }
+}
+
+impl ReadingState {
+    pub fn for_paper(paper_id: &str) -> Self {
+        Self { paper_id: paper_id.to_string(), ..Self::default() }
+    }
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct UpdateReadingState {
+    pub status: Option<ReadingStatus>,
+    pub priority: Option<ReadingPriority>,
+    pub why: Option<String>,
+    pub last_view: Option<String>,
+    pub last_anchor: Option<String>,
+}
+
+// ---------------------------------------------------------------------------
 // Cross-paper synthesis
 // ---------------------------------------------------------------------------
 
@@ -893,6 +965,10 @@ pub struct LibraryFacets {
     pub sources: Vec<FacetCount>,
     pub statuses: Vec<FacetCount>,
     pub years: Vec<FacetCount>,
+    /// Reading-triage facets: unread / in_progress / done.
+    pub reading_statuses: Vec<FacetCount>,
+    /// Reading-priority facets: high / medium / low.
+    pub priorities: Vec<FacetCount>,
 }
 
 /// A filtered, sorted, paginated slice of the library plus everything the UI
@@ -908,6 +984,8 @@ pub struct LibraryResponse {
     pub offset: usize,
     pub facets: LibraryFacets,
     pub categories: Vec<CategoryDef>,
+    /// Reading state for the papers on this page (unread when not tracked).
+    pub reading: Vec<ReadingState>,
 }
 
 /// Query parameters accepted by `GET /api/library`. All fields are optional so
@@ -925,6 +1003,10 @@ pub struct LibraryQuery {
     pub source: String,
     /// Status name (ready, processing, failed).
     pub status: String,
+    /// Reading triage status (unread, in_progress, done).
+    pub reading_status: String,
+    /// Reading priority (high, medium, low).
+    pub priority: String,
     pub year_from: Option<u32>,
     pub year_to: Option<u32>,
     /// recent | title | year | relevance | findings
@@ -938,6 +1020,7 @@ impl Default for LibraryQuery {
         Self {
             q: String::new(), category: String::new(), tag: String::new(),
             source: String::new(), status: String::new(),
+            reading_status: String::new(), priority: String::new(),
             year_from: None, year_to: None,
             sort: "recent".into(), limit: 12, offset: 0,
         }

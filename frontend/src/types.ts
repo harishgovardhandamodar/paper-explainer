@@ -2,6 +2,8 @@ export type PaperStatus = 'ready' | 'processing' | 'failed';
 export type PaperSource = 'curated' | 'heuristic' | 'llm_assisted' | 'manual';
 export type HypothesisStatus = 'supported' | 'partially_supported' | 'rejected' | 'open';
 export type Importance = 'high' | 'medium' | 'low';
+export type ReadingStatus = 'unread' | 'in_progress' | 'done';
+export type ReadingPriority = 'high' | 'medium' | 'low';
 export type DiagramKind = 'architecture' | 'workflow' | 'taxonomy' | 'timeline' | 'leakage' | 'other';
 export type NodeKind = 'paper' | 'concept' | 'hypothesis' | 'experiment' | 'finding' | 'method' | 'dataset' | 'metric';
 export type EdgeKind =
@@ -360,6 +362,24 @@ export interface CategoryDef {
   tone: string;
 }
 
+export interface ReadingState {
+  paper_id: string;
+  status: ReadingStatus;
+  priority: ReadingPriority;
+  why: string;
+  last_view: string;
+  last_anchor: string;
+  updated_at: string;
+}
+
+export interface UpdateReadingState {
+  status?: ReadingStatus;
+  priority?: ReadingPriority;
+  why?: string;
+  last_view?: string;
+  last_anchor?: string;
+}
+
 export interface FacetCount {
   value: string;
   label: string;
@@ -372,6 +392,8 @@ export interface LibraryFacets {
   sources: FacetCount[];
   statuses: FacetCount[];
   years: FacetCount[];
+  reading_statuses: FacetCount[];
+  priorities: FacetCount[];
 }
 
 export interface LibraryResponse {
@@ -382,6 +404,7 @@ export interface LibraryResponse {
   offset: number;
   facets: LibraryFacets;
   categories: CategoryDef[];
+  reading: ReadingState[];
 }
 
 export interface LibraryQuery {
@@ -390,6 +413,8 @@ export interface LibraryQuery {
   tag?: string;
   source?: string;
   status?: string;
+  reading_status?: string;
+  priority?: string;
   year_from?: number;
   year_to?: number;
   sort?: string;
