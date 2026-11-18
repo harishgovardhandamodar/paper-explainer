@@ -7,7 +7,7 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 
 ## Present & communicate
 
-- [ ] **1. Presentation mode** (M) — Slideshow from a paper: question → hypotheses → method → results → caveats → implications. Arrow keys, fullscreen, per-slide speaker notes.
+- [x] **1. Presentation mode** (M) — Slideshow from a paper: question → hypotheses → method → results → caveats → implications. Arrow keys, fullscreen, per-slide speaker notes.
 - [ ] **2. Audience lens** (M) — Researcher / Engineer / Executive / Student switch that changes depth and vocabulary across views; deterministic text stays the baseline.
 - [ ] **3. Compare-papers view** (M) — Side-by-side 2–N comparison of question, method, datasets/metrics, results and caveats, plus graph focus.
 - [ ] **4. One-pager + multi-format export** (S–M) — Designed 1-page HTML/PDF brief, self-contained shareable readout, BibTeX, CSV/JSON findings, Marp/Slidev deck.
@@ -52,3 +52,4 @@ Status legend: `[ ]` planned · `[x]` done and committed.
 | # | Feature | Commit | Notes |
 |---|---------|--------|-------|
 | 0 | Dark/light theme baseline | `9dfb6c1` | Pending work from prior session committed first |
+| 1 | Presentation mode | `d2bd6fb` | Generated slides from paper structure; arrow/Home/End/N/Esc keys, fullscreen stage, notes panel, progress dots; `MermaidDiagram` bare mode |
