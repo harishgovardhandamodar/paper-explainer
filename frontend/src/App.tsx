@@ -12,6 +12,7 @@ import { LimitsView } from './components/LimitsView';
 import { MatrixView } from './components/MatrixView';
 import { PresentView } from './components/PresentView';
 import { ReadView } from './components/ReadView';
+import { ReproView } from './components/ReproView';
 import { SourceView } from './components/SourceView';
 import { relativeDate } from './components/ui';
 import { toggleTheme, useTheme } from './theme';
@@ -28,6 +29,7 @@ const NAV: { key: ViewKey; label: string; icon: string }[] = [
   { key: 'annotations', label: 'Annotations', icon: '✎' },
   { key: 'matrix', label: 'Claim matrix', icon: '▦' },
   { key: 'limits', label: 'Limits & critique', icon: '⚠' },
+  { key: 'repro', label: 'Reproducibility', icon: '✓' },
   { key: 'hypotheses', label: 'Hypotheses', icon: '◎' },
   { key: 'experiments', label: 'Experiments', icon: '⚗' },
   { key: 'diagrams', label: 'Diagrams', icon: '◇' },
@@ -310,6 +312,7 @@ export default function App() {
               {view === 'annotations' && <AnnotationsView paper={paper} onNotify={notify} />}
               {view === 'matrix' && <MatrixView paper={paper} />}
               {view === 'limits' && <LimitsView paper={paper} onNotify={notify} />}
+              {view === 'repro' && <ReproView paper={paper} onNavigate={setView} />}
               {view === 'hypotheses' && <HypothesesView paper={paper} />}
               {view === 'experiments' && <ExperimentsView paper={paper} />}
               {view === 'diagrams' && <DiagramsView paper={paper} />}
