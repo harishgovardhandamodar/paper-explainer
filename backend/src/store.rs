@@ -98,8 +98,13 @@ impl StoreHandle {
         };
 
         let mut matched: Vec<&Paper> = store.papers.iter().filter(|p| {
-            if !needle.is_empty() && !p.all_text().to_lowercase().contains(&needle) {
-                return false;
+            // Every word must appear somewhere in the paper. Matching the whole
+            // phrase as one substring made multi-word searches feel broken.
+            if !tokens.is_empty() {
+                let text = p.all_text().to_lowercase();
+                if !tokens.iter().all(|t| text.contains(*t)) {
+                    return false;
+                }
             }
             if !category.is_empty() && !p.categories.iter().any(|c| c == category) {
                 return false;
@@ -1191,6 +1196,22 @@ mod tests {
         }).unwrap();
         assert_eq!(state.status, ReadingStatus::Done);
         assert_eq!(state.last_view, "read");
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn library_search_matches_every_word_anywhere() {
+        let (store, path) = temp_store();
+        // These words are far apart in the seeded paper's text, so a whole-
+        // phrase substring search would miss them.
+        let hit = store.query_library(&LibraryQuery {
+            q: "obfuscation security".into(), ..Default::default()
+        }).unwrap();
+        assert_eq!(hit.total, 1);
+        let miss = store.query_library(&LibraryQuery {
+            q: "obfuscation quantum".into(), ..Default::default()
+        }).unwrap();
+        assert_eq!(miss.total, 0);
         let _ = fs::remove_file(path);
     }
 

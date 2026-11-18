@@ -148,9 +148,12 @@ export function SynthesisView({
   const active = saved.find((s) => s.id === activeId) ?? null;
   const activeView = active ? { ...active, title: activeTitle, notes: activeNotes } : null;
 
-  const filtered = papers.filter((p) =>
-    !search.trim() || `${p.title} ${p.tags.join(' ')}`.toLowerCase().includes(search.toLowerCase()),
-  );
+  const words = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const filtered = papers.filter((p) => {
+    if (!words.length) return true;
+    const hay = `${p.title} ${(p.tags ?? []).join(' ')} ${p.primary_category ?? ''} ${p.year ?? ''}`.toLowerCase();
+    return words.every((w) => hay.includes(w));
+  });
 
   const toggle = (id: string) => setSelected((prev) => {
     const next = new Set(prev);

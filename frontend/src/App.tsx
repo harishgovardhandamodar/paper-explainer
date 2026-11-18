@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api';
 import { lensLabel, useAudience } from './audience';
 import { AddPaperDialog } from './components/AddPaperDialog';
@@ -84,11 +84,23 @@ export default function App() {
   const [searching, setSearching] = useState(false);
   const [toast, setToast] = useState<{ text: string; error?: boolean } | null>(null);
   const [keyboardIndex, setKeyboardIndex] = useState<number | null>(null);
+  const [recentFilter, setRecentFilter] = useState('');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const theme = useTheme();
   const audience = useAudience();
   const searchTimer = useRef<number | undefined>(undefined);
   const searchRef = useRef<HTMLInputElement>(null);
+
+  // The Recent list is the fastest way to switch papers, but many titles are
+  // long. Let people narrow it by any word in the title or tag.
+  const recentPapers = useMemo(() => {
+    const words = recentFilter.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (!words.length) return papers;
+    return papers.filter((p) => {
+      const hay = `${p.title} ${(p.tags ?? []).join(' ')} ${p.year ?? ''}`.toLowerCase();
+      return words.every((w) => hay.includes(w));
+    });
+  }, [papers, recentFilter]);
 
   const notify = useCallback((text: string, error = false) => {
     setToast({ text, error });
@@ -258,17 +270,17 @@ export default function App() {
 
       const key = e.key.toLowerCase();
       if (key === 'j' || key === 'k') {
-        if (!papers.length) return;
+        if (!recentPapers.length) return;
         e.preventDefault();
         setKeyboardIndex((prev) => {
-          if (prev === null) return key === 'j' ? 0 : papers.length - 1;
+          if (prev === null) return key === 'j' ? 0 : recentPapers.length - 1;
           return key === 'j'
-            ? Math.min(prev + 1, papers.length - 1)
+            ? Math.min(prev + 1, recentPapers.length - 1)
             : Math.max(prev - 1, 0);
         });
       } else if (key === 'o') {
-        const idx = keyboardIndex ?? Math.max(0, papers.findIndex((p) => p.id === paper?.id));
-        const chosen = papers[idx];
+        const idx = keyboardIndex ?? Math.max(0, recentPapers.findIndex((p) => p.id === paper?.id));
+        const chosen = recentPapers[idx];
         if (chosen) {
           e.preventDefault();
           void openPaper(chosen.id);
@@ -281,14 +293,17 @@ export default function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [papers, paper, view, dialog, keyboardIndex, mobileNavOpen, openPaper, navigate]);
+  }, [recentPapers, paper, view, dialog, keyboardIndex, mobileNavOpen, openPaper, navigate]);
 
   // Keep the keyboard-highlighted paper visible in the sidebar.
   useEffect(() => {
     if (keyboardIndex === null) return;
     document.querySelector(`[data-paper-index="${keyboardIndex}"]`)
       ?.scrollIntoView({ block: 'nearest' });
-  }, [keyboardIndex]);
+  }, [keyboardIndex, recentFilter]);
+
+  // A changed filter invalidates the old highlighted position.
+  useEffect(() => { setKeyboardIndex(null); }, [recentFilter]);
 
   if (loading) return <div className="loading"><div className="spinner" />Loading the collection…</div>;
 
@@ -347,15 +362,19 @@ export default function App() {
         </nav>
         <div className="sidebar-papers" aria-label="Recent papers">
           <div className="nav-label">Recent <span className="kbd-hint-inline">j/k</span></div>
-          {papers.map((p, i) => (
+          <input className="recent-search" value={recentFilter} onChange={(e) => setRecentFilter(e.target.value)}
+            placeholder="Filter papers…" aria-label="Filter recent papers" />
+          {recentPapers.map((p, i) => (
             <button key={p.id} data-paper-index={i}
               className={`paper-mini ${paper?.id === p.id ? 'active' : ''} ${keyboardIndex === i ? 'kb-focus' : ''}`}
               onClick={() => { void openPaper(p.id); setMobileNavOpen(false); }}
-              aria-current={paper?.id === p.id ? 'page' : undefined}>
+              aria-current={paper?.id === p.id ? 'page' : undefined}
+              title={p.title}>
               <div className="pm-title">{p.title}</div>
               <div className="pm-meta">{p.year ?? '—'} · {relativeDate(p.added_at)}</div>
             </button>
           ))}
+          {!recentPapers.length && <div className="tiny faint" style={{ padding: '6px 10px' }}>No papers match.</div>}
         </div>
         <div className="sidebar-foot">
           <button className="btn primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setDialog(true)}>

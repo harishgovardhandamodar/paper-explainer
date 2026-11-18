@@ -13,12 +13,25 @@ function PaperPicker({
   onChange: (ids: string[]) => void;
 }) {
   const [query, setQuery] = useState('');
-  const shown = papers.filter((p) => !query.trim()
-    || p.title.toLowerCase().includes(query.trim().toLowerCase()));
+  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const shown = papers.filter((p) => {
+    if (!words.length) return true;
+    const hay = `${p.title} ${(p.tags ?? []).join(' ')} ${p.primary_category ?? ''} ${p.year ?? ''}`.toLowerCase();
+    return words.every((w) => hay.includes(w));
+  });
+  const shownIds = shown.map((p) => p.id);
+  const selectShown = () => onChange([...new Set([...selected, ...shownIds])]);
+  const clearShown = () => onChange(selected.filter((id) => !shownIds.includes(id)));
   return (
     <div className="proj-picker">
       <input className="src-search" style={{ margin: 0, width: '100%' }} value={query}
-        onChange={(e) => setQuery(e.target.value)} placeholder="Filter papers…" aria-label="Filter papers" />
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Filter by title, tag or year…" aria-label="Filter papers" />
+      <div className="proj-picker-actions">
+        <button type="button" className="link-btn" onClick={selectShown} disabled={!shown.length}>Select shown</button>
+        <button type="button" className="link-btn" onClick={clearShown} disabled={!selected.length}>Clear shown</button>
+        <span className="tiny faint">{selected.length} selected</span>
+      </div>
       <div className="proj-picker-list">
         {shown.map((p) => {
           const checked = selected.includes(p.id);
@@ -27,14 +40,16 @@ function PaperPicker({
               <input type="checkbox" checked={checked} onChange={() => onChange(
                 checked ? selected.filter((id) => id !== p.id) : [...selected, p.id],
               )} />
-              <span>{p.title}</span>
+              <span className="pp-text">
+                <span className="pp-title">{p.title}</span>
+                <span className="pp-meta">{[p.primary_category, ...(p.tags ?? []).slice(0, 3)].filter(Boolean).join(' · ')}</span>
+              </span>
               {p.year && <span className="tiny faint">{p.year}</span>}
             </label>
           );
         })}
         {!shown.length && <div className="tiny faint" style={{ padding: 8 }}>No papers match.</div>}
       </div>
-      <div className="tiny faint">{selected.length} selected</div>
     </div>
   );
 }
