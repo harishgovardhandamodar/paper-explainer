@@ -83,9 +83,12 @@ export default function App() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [toast, setToast] = useState<{ text: string; error?: boolean } | null>(null);
+  const [keyboardIndex, setKeyboardIndex] = useState<number | null>(null);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const theme = useTheme();
   const audience = useAudience();
   const searchTimer = useRef<number | undefined>(undefined);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const notify = useCallback((text: string, error = false) => {
     setToast({ text, error });
@@ -223,6 +226,70 @@ export default function App() {
     catch (e) { notify(e instanceof Error ? e.message : String(e), true); }
   };
 
+  // Keyboard-first navigation: `/` focuses search, `j`/`k` move through the
+  // recent-paper list, `o` opens the highlighted paper and `p` presents it.
+  // All shortcuts stand down while typing, in a modal, or in presentation mode.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (view === 'present' || dialog) return;
+      const target = e.target as HTMLElement | null;
+      const typing = !!target && (
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable
+      );
+
+      if (e.key === '/') {
+        if (typing) return;
+        e.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+        return;
+      }
+      if (e.key === 'Escape') {
+        if (document.activeElement === searchRef.current) {
+          searchRef.current?.blur();
+          setQuery('');
+          setResults([]);
+        }
+        if (mobileNavOpen) setMobileNavOpen(false);
+        return;
+      }
+      if (typing) return;
+
+      const key = e.key.toLowerCase();
+      if (key === 'j' || key === 'k') {
+        if (!papers.length) return;
+        e.preventDefault();
+        setKeyboardIndex((prev) => {
+          if (prev === null) return key === 'j' ? 0 : papers.length - 1;
+          return key === 'j'
+            ? Math.min(prev + 1, papers.length - 1)
+            : Math.max(prev - 1, 0);
+        });
+      } else if (key === 'o') {
+        const idx = keyboardIndex ?? Math.max(0, papers.findIndex((p) => p.id === paper?.id));
+        const chosen = papers[idx];
+        if (chosen) {
+          e.preventDefault();
+          void openPaper(chosen.id);
+          setMobileNavOpen(false);
+        }
+      } else if (key === 'p' && paper) {
+        e.preventDefault();
+        navigate('present');
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [papers, paper, view, dialog, keyboardIndex, mobileNavOpen, openPaper, navigate]);
+
+  // Keep the keyboard-highlighted paper visible in the sidebar.
+  useEffect(() => {
+    if (keyboardIndex === null) return;
+    document.querySelector(`[data-paper-index="${keyboardIndex}"]`)
+      ?.scrollIntoView({ block: 'nearest' });
+  }, [keyboardIndex]);
+
   if (loading) return <div className="loading"><div className="spinner" />Loading the collection…</div>;
 
   if (view === 'present' && paper) {
@@ -247,32 +314,44 @@ export default function App() {
 
   return (
     <div className="app">
-      <aside className="sidebar">
+      <a className="skip-link" href="#main-content">Skip to main content</a>
+      {mobileNavOpen && <button className="mobile-backdrop" aria-label="Close navigation"
+        onClick={() => setMobileNavOpen(false)} />}
+      <aside className={`sidebar ${mobileNavOpen ? 'mobile-open' : ''}`} aria-label="Main navigation">
         <div className="brand">
-          <div className="brand-mark">P</div>
+          <div className="brand-mark" aria-hidden="true">P</div>
           <div><div className="brand-name">Paper Explainer</div><div className="brand-sub">research workbench</div></div>
         </div>
-        <nav className="nav">
+        <nav className="nav" aria-label="Paper sections">
           <div className="nav-label">Explain</div>
           {NAV.map((n) => (
-            <button key={n.key} className={`nav-item ${view === n.key ? 'active' : ''}`} onClick={() => navigate(n.key)}>
-              <span className="icon">{n.icon}</span><span>{lensLabel(audience, n.label)}</span>
+            <button key={n.key} className={`nav-item ${view === n.key ? 'active' : ''}`}
+              onClick={() => { navigate(n.key); setMobileNavOpen(false); }}
+              aria-current={view === n.key ? 'page' : undefined}>
+              <span className="icon" aria-hidden="true">{n.icon}</span><span>{lensLabel(audience, n.label)}</span>
               {countFor(n.key) !== undefined && <span className="count">{countFor(n.key)}</span>}
             </button>
           ))}
           <div className="nav-label">Collection</div>
-          <button className={`nav-item ${view === 'library' ? 'active' : ''}`} onClick={() => setView('library')}>
-            <span className="icon">▤</span><span>Library</span><span className="count">{papers.length}</span>
+          <button className={`nav-item ${view === 'library' ? 'active' : ''}`}
+            onClick={() => { setView('library'); setMobileNavOpen(false); }}
+            aria-current={view === 'library' ? 'page' : undefined}>
+            <span className="icon" aria-hidden="true">▤</span><span>Library</span><span className="count">{papers.length}</span>
           </button>
           <div className="nav-label">Learn</div>
-          <button className={`nav-item ${view === 'design' ? 'active' : ''}`} onClick={() => setView('design')}>
-            <span className="icon">?</span><span>Help &amp; Design</span>
+          <button className={`nav-item ${view === 'design' ? 'active' : ''}`}
+            onClick={() => { setView('design'); setMobileNavOpen(false); }}
+            aria-current={view === 'design' ? 'page' : undefined}>
+            <span className="icon" aria-hidden="true">?</span><span>Help &amp; Design</span>
           </button>
         </nav>
-        <div className="sidebar-papers">
-          <div className="nav-label">Recent</div>
-          {papers.map((p) => (
-            <button key={p.id} className={`paper-mini ${paper?.id === p.id ? 'active' : ''}`} onClick={() => void openPaper(p.id)}>
+        <div className="sidebar-papers" aria-label="Recent papers">
+          <div className="nav-label">Recent <span className="kbd-hint-inline">j/k</span></div>
+          {papers.map((p, i) => (
+            <button key={p.id} data-paper-index={i}
+              className={`paper-mini ${paper?.id === p.id ? 'active' : ''} ${keyboardIndex === i ? 'kb-focus' : ''}`}
+              onClick={() => { void openPaper(p.id); setMobileNavOpen(false); }}
+              aria-current={paper?.id === p.id ? 'page' : undefined}>
               <div className="pm-title">{p.title}</div>
               <div className="pm-meta">{p.year ?? '—'} · {relativeDate(p.added_at)}</div>
             </button>
@@ -282,40 +361,55 @@ export default function App() {
           <button className="btn primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setDialog(true)}>
             ＋ <span>Add paper</span>
           </button>
+          <div className="kbd-hint">
+            <kbd>/</kbd> search · <kbd>j</kbd><kbd>k</kbd> papers · <kbd>o</kbd> open · <kbd>p</kbd> present
+          </div>
         </div>
       </aside>
 
-      <main className="main">
+      <main className="main" id="main-content">
         <header className="topbar">
+          <button className="btn sm ghost mobile-menu" aria-label="Toggle navigation"
+            aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen((v) => !v)}>☰</button>
           <div className="crumb">Collection <span className="faint">/</span> <strong>{view === 'design' ? 'Help & Design' : view === 'ai' ? 'AI insights' : view === 'library' ? 'Library' : view === 'triage' ? 'Triage inbox' : view === 'citations' ? 'Citation graph' : view === 'glossary' ? 'Glossary' : view === 'projects' ? 'Projects' : view === 'provenance' ? 'Provenance' : view === 'corrections' ? 'Corrections' : view === 'guardrails' ? 'AI guardrails' : view === 'versions' ? 'Version history' : view === 'tracker' ? 'Hypothesis tracker' : view === 'synthesis' ? 'Synthesis builder' : paper ? (paper.title.length > 46 ? `${paper.title.slice(0, 46)}…` : paper.title) : 'Library'}</strong></div>
           <AudienceSwitch />
-          <div className="search-wrap">
-            <span className="search-icon">⌕</span>
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search hypotheses, findings, concepts…" />
+          <div className="search-wrap" role="search">
+            <span className="search-icon" aria-hidden="true">⌕</span>
+            <input ref={searchRef} value={query} onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search hypotheses, findings, concepts…"
+              aria-label="Search papers and claims"
+              aria-controls="search-results"
+              aria-expanded={!!(query || searching)}
+              aria-autocomplete="list" />
             {(query || searching) && (
-              <div className="search-results">
+              <div className="search-results" id="search-results" role="listbox" aria-label="Search results">
                 {searching && <div className="small muted" style={{ padding: 10 }}>Searching…</div>}
                 {!searching && !results.length && <div className="small muted" style={{ padding: 10 }}>No matches</div>}
                 {results.map((r, i) => (
-                  <div key={`${r.id}-${i}`} className="search-result" onClick={() => handleResult(r)}>
+                  <button type="button" key={`${r.id}-${i}`} className="search-result" role="option"
+                    aria-selected={false} onClick={() => handleResult(r)}>
                     <div className="sr-kind">{r.kind} · {r.paper_title.slice(0, 40)}</div>
                     <div className="sr-title">{r.title}</div>
                     <div className="sr-snippet">{r.snippet}</div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
           </div>
           {paper && view !== 'library' && view !== 'design' && view !== 'ai' && view !== 'compare' && view !== 'export' && view !== 'tracker' && view !== 'synthesis' && view !== 'triage' && view !== 'citations' && view !== 'glossary' && view !== 'projects' && view !== 'provenance' && view !== 'corrections' && view !== 'guardrails' && view !== 'versions' && <>
             <a className="btn sm" href={api.exportUrl(paper.id)} target="_blank" rel="noreferrer">Export MD</a>
-            <button className="btn sm" onClick={handleRefresh} title="Re-import from source">↻</button>
-            <button className="btn sm" onClick={() => navigate('versions')} title="Version history (refresh/AI changes are snapshotted)">◷ History</button>
+            <button className="btn sm" onClick={handleRefresh} title="Re-import from source"
+              aria-label="Re-import paper from source">↻</button>
+            <button className="btn sm" onClick={() => navigate('versions')}
+              title="Version history (refresh/AI changes are snapshotted)"
+              aria-label="Open version history">◷ History</button>
           </>}
           <button
             className="btn sm ghost theme-toggle"
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-pressed={theme === 'dark'}
           >
             {theme === 'dark' ? '☀' : '☾'}
           </button>
@@ -402,7 +496,8 @@ export default function App() {
       </main>
 
       <AddPaperDialog open={dialog} onClose={() => setDialog(false)} onAdded={(p) => void handleAdd(p)} />
-      {toast && <div className={`toast ${toast.error ? 'error' : ''}`}>{toast.text}</div>}
+      {toast && <div className={`toast ${toast.error ? 'error' : ''}`}
+        role={toast.error ? 'alert' : 'status'} aria-live={toast.error ? 'assertive' : 'polite'}>{toast.text}</div>}
     </div>
   );
 }

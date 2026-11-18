@@ -286,6 +286,19 @@ export function DesignView() {
           </div>
         </header>
 
+        <div className="card kbd-help" role="region" aria-label="Keyboard shortcuts">
+          <div className="card-title">Keyboard shortcuts</div>
+          <div className="kbd-help-grid">
+            <div><kbd>/</kbd><span>Focus search</span></div>
+            <div><kbd>j</kbd><kbd>k</kbd><span>Next / previous paper</span></div>
+            <div><kbd>o</kbd><span>Open the highlighted paper</span></div>
+            <div><kbd>p</kbd><span>Present this paper</span></div>
+            <div><kbd>Esc</kbd><span>Close search or the mobile menu</span></div>
+            <div><kbd>←</kbd><kbd>→</kbd><span>Move slides while presenting</span></div>
+          </div>
+          <div className="small faint">Shortcuts pause while you are typing and are ignored with Ctrl, Alt or Meta held.</div>
+        </div>
+
         <div className="design-body-row">
           <div className={`design-doc ${srcMode ? 'show-src' : ''}`} ref={bodyRef}>
             {loading && <div className="loading"><div className="spinner" />Loading document…</div>}

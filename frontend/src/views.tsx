@@ -411,9 +411,68 @@ const EDGE_KINDS: EdgeKind[] = [
   'uses', 'extends', 'subsumes', 'refines', 'produces',
 ];
 
+/** Non-visual, keyboard- and screen-reader-friendly view of the same graph data. */
+function GraphTableView({ graph, onSelect, selectedId }: {
+  graph: KnowledgeGraph; onSelect: (node: GraphNode) => void; selectedId: string | null;
+}) {
+  const label = new Map(graph.nodes.map((n) => [n.id, n.label]));
+  const links = (id: string) => graph.edges.filter((e) => e.source === id || e.target === id).length;
+  return (
+    <div className="stack">
+      <div className="card graph-table-card">
+        <div className="card-title">Nodes <span className="faint tiny">({graph.nodes.length})</span></div>
+        <div className="tbl-scroll">
+          <table className="tbl graph-tbl">
+            <caption className="sr-only">Every knowledge-graph node with its type, detail, papers and number of links</caption>
+            <thead>
+              <tr>
+                <th scope="col">Type</th><th scope="col">Name</th><th scope="col">Detail</th>
+                <th scope="col">Papers</th><th scope="col">Links</th>
+              </tr>
+            </thead>
+            <tbody>
+              {graph.nodes.map((n) => (
+                <tr key={n.id} className={selectedId === n.id ? 'selected' : ''}>
+                  <td><span className="legend-dot" style={{ background: NODE_COLORS[n.kind] }} /> {NODE_LABELS[n.kind]}</td>
+                  <td><button type="button" className="link-btn" onClick={() => onSelect(n)}>{n.label}</button></td>
+                  <td className="small muted">{n.detail}</td>
+                  <td className="mono tiny">{n.paper_ids.join(', ') || '—'}</td>
+                  <td className="mono tiny">{links(n.id)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div className="card graph-table-card">
+        <div className="card-title">Relations <span className="faint tiny">({graph.edges.length})</span></div>
+        <div className="tbl-scroll">
+          <table className="tbl graph-tbl">
+            <caption className="sr-only">Every relation with its source, kind, target and papers</caption>
+            <thead>
+              <tr><th scope="col">Source</th><th scope="col">Relation</th><th scope="col">Target</th><th scope="col">Papers</th></tr>
+            </thead>
+            <tbody>
+              {graph.edges.map((e) => (
+                <tr key={e.id}>
+                  <td>{label.get(e.source) ?? e.source}</td>
+                  <td><span className="chip">{e.kind.replace(/_/g, ' ')}</span></td>
+                  <td>{label.get(e.target) ?? e.target}</td>
+                  <td className="mono tiny">{e.paper_ids.join(', ') || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function GraphView({ graph, activePaperId, onAddEdge }: {
   graph: KnowledgeGraph; activePaperId: string | null; onAddEdge: (e: GraphEdge) => Promise<void>;
 }) {
+  const [mode, setMode] = useState<'graph' | 'table'>('graph');
   const [hidden, setHidden] = useState<Set<NodeKind>>(new Set());
   const [selected, setSelected] = useState<GraphNode | null>(null);
   const [paperOnly, setPaperOnly] = useState(false);
@@ -457,17 +516,34 @@ export function GraphView({ graph, activePaperId, onAddEdge }: {
         <StatCard num={graph.nodes.filter((n) => n.kind === 'paper').length} label="Papers" tone="green" />
       </div>
 
+      <div className="graph-mode-switch" role="group" aria-label="Graph display mode">
+        <button type="button" className={`btn sm ${mode === 'graph' ? 'primary' : ''}`}
+          aria-pressed={mode === 'graph'} onClick={() => setMode('graph')}>
+          ⁂ Interactive graph
+        </button>
+        <button type="button" className={`btn sm ${mode === 'table' ? 'primary' : ''}`}
+          aria-pressed={mode === 'table'} onClick={() => setMode('table')}>
+          ▤ Table (keyboard &amp; screen-reader friendly)
+        </button>
+      </div>
+
       <div className="graph-shell">
         <div>
-          <ForceGraph graph={filtered} selectedId={selected?.id ?? null} onSelect={selectNode}
-            highlightPaperId={paperOnly ? activePaperId : null} />
-          <div className="legend">
-            {ALL_KINDS.map((k) => (
-              <div key={k} className="legend-item">
-                <span className="legend-dot" style={{ background: NODE_COLORS[k] }} />{NODE_LABELS[k]}
+          {mode === 'graph' ? (
+            <>
+              <ForceGraph graph={filtered} selectedId={selected?.id ?? null} onSelect={selectNode}
+                highlightPaperId={paperOnly ? activePaperId : null} />
+              <div className="legend" aria-label="Node type colours">
+                {ALL_KINDS.map((k) => (
+                  <div key={k} className="legend-item">
+                    <span className="legend-dot" style={{ background: NODE_COLORS[k] }} aria-hidden="true" />{NODE_LABELS[k]}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          ) : (
+            <GraphTableView graph={filtered} onSelect={selectNode} selectedId={selected?.id ?? null} />
+          )}
         </div>
         <div className="stack">
           <div className="card">
